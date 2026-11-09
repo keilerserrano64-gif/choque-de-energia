@@ -11,7 +11,7 @@ extends Control
 const LAYOUT := [
 	[0, 1, 4, 5],
 	[2, 3, 6, 7],
-	[SelectCell.RANDOM, SelectCell.EMBLEM, SelectCell.EMBLEM, SelectCell.RANDOM],
+	[SelectCell.RANDOM, 8, SelectCell.EMBLEM, SelectCell.RANDOM],  # 8 = Kakashi
 ]
 const COLS := 4
 const ROWS := 3

@@ -846,6 +846,63 @@ const FIGHTERS := [
 		"sprite_head": Vector2(65, 27),
 		# --- fin sprites generados ---
 	},
+	{
+		# Estadísticas copiadas de Volt como punto de partida; ajústalas a gusto.
+		"id": "kakashi", "name": "Kakashi", "role": "CORREDOR ELÉCTRICO",
+		"description": "Rushdown eléctrico: Salto de umbral le planta delante del rival con un golpe, y con atrás + L esquiva hacia atrás.",
+		"technique_hint": "atrás + L: esquiva",
+		"technique": "Salto de umbral", "awakening": "Centinela de plasma", "special": "volt-step",
+		"color": "#3a4d6e", "accent": "#7fe8ff", "trim": "#d6e2f0", "hair": "#c9d6e6",
+		"speed": 258.0, "damage": 9.0, "defense": 0.9, "cooldown": 1.05, "look": "spikes",
+		"sprite_scale": 80.0 / 58.0, "pushbox_half_width": 21.0,
+		"combo_length": 4, "finisher_damage": 1.25, "finisher_knockback": 152.0, "finisher_hit_stop": 7.0,
+		"finisher_launch": -120.0, "finisher_text": "¡RÁFAGA SÓNICA!",
+		"run_multiplier": 1.35, "attack_cooldown": 0.2, "tags": ["VELOCIDAD", "RUSHDOWN"],
+		"punch_combo": 4, "kick_combo": 4, "chain_power": 1.0,
+		"voice_fx": [{"type": "phaser", "rate": 2.4, "depth": 0.7}, {"type": "reverb", "room": 0.25, "wet": 0.1}],
+		"sprites": {
+		"idle": [
+			"res://assets/fighters/kakashi/kakashi_sheet.png#0,0,168,95",
+			"res://assets/fighters/kakashi/kakashi_sheet.png#672,190,168,95",
+			"res://assets/fighters/kakashi/kakashi_sheet.png#840,190,168,95",
+			"res://assets/fighters/kakashi/kakashi_sheet.png#1008,190,168,95",
+    	    "res://assets/fighters/kakashi/kakashi_sheet.png#1176,190,168,95"
+		],
+		"walk": [
+			"res://assets/fighters/kakashi/kakashi_sheet.png#504,475,168,95",
+			"res://assets/fighters/kakashi/kakashi_sheet.png#672,475,168,95",
+			"res://assets/fighters/kakashi/kakashi_sheet.png#840,475,168,95",
+			"res://assets/fighters/kakashi/kakashi_sheet.png#1008,475,168,95",
+			"res://assets/fighters/kakashi/kakashi_sheet.png#1176,475,168,95",
+    	    "res://assets/fighters/kakashi/kakashi_sheet.png#0,570,168,95"
+		],
+		"jab": [
+			"res://assets/fighters/kakashi/kakashi_sheet.png#840,1330,168,95",
+			"res://assets/fighters/kakashi/kakashi_sheet.png#1008,1330,168,95",
+    	    "res://assets/fighters/kakashi/kakashi_sheet.png#1176,1330,168,95"
+		],
+		"kick": [
+			"res://assets/fighters/kakashi/kakashi_sheet.png#168,1235,168,95",
+    	    "res://assets/fighters/kakashi/kakashi_sheet.png#336,1235,168,95"
+		],
+		"hurt": [
+			"res://assets/fighters/kakashi/kakashi_sheet.png#336,1045,168,95",
+			"res://assets/fighters/kakashi/kakashi_sheet.png#504,1045,168,95",
+			"res://assets/fighters/kakashi/kakashi_sheet.png#672,1045,168,95",
+			"res://assets/fighters/kakashi/kakashi_sheet.png#840,1045,168,95",
+    	    "res://assets/fighters/kakashi/kakashi_sheet.png#1008,1045,168,95"
+		],
+		"jump": [
+			"res://assets/fighters/kakashi/kakashi_sheet.png#504,855,168,95",
+			"res://assets/fighters/kakashi/kakashi_sheet.png#672,855,168,95",
+			"res://assets/fighters/kakashi/kakashi_sheet.png#840,855,168,95",
+			"res://assets/fighters/kakashi/kakashi_sheet.png#1008,855,168,95",
+    	    "res://assets/fighters/kakashi/kakashi_sheet.png#1176,855,168,95"
+		]
+		},
+		"sprite_anchor": Vector2(84, 95),
+		"sprite_height": 65.6,
+	},
 ]
 
 const STAGES := [

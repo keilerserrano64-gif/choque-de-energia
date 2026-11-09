@@ -64,6 +64,7 @@ func _initialize() -> void:
 	test_knockdown_bounce()
 	test_volt_comfort()
 	test_long_simulation()
+	test_sprite_sheet()
 	print("\n%d comprobaciones correctas, %d fallos" % [passed, failures])
 	quit(1 if failures > 0 else 0)
 
@@ -839,3 +840,56 @@ func test_volt_comfort() -> void:
 	check(not FighterPainter._move_tweak("kick_low", "finisher_impact").is_empty(), "Volt: la patada baja se dibuja inclinada")
 	check(not FighterPainter._move_tweak("uppercut", "heavy").is_empty(), "Volt: el uppercut se dibuja hacia arriba")
 	check(FighterPainter._move_tweak("kick_low", "kick_low").is_empty(), "los luchadores con imagen propia no se giran")
+
+
+func test_sprite_sheet() -> void:
+	# Hoja sintética: fondo magenta y tres bloques de distinto alto en una fila,
+	# más una mota de 2x2 que no debe contar como cuadro.
+	var sheet := Image.create_empty(120, 60, false, Image.FORMAT_RGBA8)
+	sheet.fill(Color(1, 0, 1))
+	sheet.fill_rect(Rect2i(5, 10, 20, 40), Color.RED)
+	sheet.fill_rect(Rect2i(40, 20, 24, 30), Color.GREEN)
+	sheet.fill_rect(Rect2i(66, 20, 4, 4), Color.GREEN)  # pieza suelta junto al segundo
+	sheet.fill_rect(Rect2i(85, 5, 18, 45), Color.BLUE)
+	sheet.fill_rect(Rect2i(110, 55, 2, 2), Color.WHITE)
+	SpriteSheet.remove_background(sheet, SpriteSheet.guess_background(sheet))
+	check(sheet.get_pixel(0, 0).a == 0.0, "hoja: el fondo queda transparente")
+	var rects := SpriteSheet.detect_frames(sheet, 8, 2)
+	check(rects.size() == 3, "hoja: detecta tres cuadros (y descarta la mota)")
+	if rects.size() == 3:
+		check(rects[0] == Rect2i(5, 10, 20, 40), "hoja: primer cuadro exacto")
+		check(rects[1] == Rect2i(40, 20, 30, 30), "hoja: junta la pieza suelta con su cuadro")
+		check(rects[2].position.x == 85, "hoja: orden de izquierda a derecha")
+		var packed := SpriteSheet.pack_uniform(sheet, rects, 8)
+		var cell: Vector2i = packed["cell"]
+		var out: Image = packed["image"]
+		check(out.get_size() == Vector2i(cell.x * 3, cell.y), "hoja: celdas iguales en una fila")
+		# Los pies de cada cuadro quedan en el centro del borde inferior de su celda.
+		for i in 3:
+			var foot := SpriteSheet.feet_point(out, SpriteSheet.grid_rect(cell, 3, i))
+			check(absf(foot.x - cell.x / 2.0) <= 1.0 and absf(foot.y - cell.y) <= 0.01,
+				"hoja: pies centrados en la celda %d" % i)
+	var ref := SpriteSheet.cell_ref("res://x.png", Vector2i(32, 48), 4, 5)
+	check(ref == "res://x.png#32,48,32,48", "hoja: referencia de la celda 5")
+	var parsed := SpriteSheet.parse_ref(ref)
+	check(parsed[0] == "res://x.png" and parsed[1] == Rect2i(32, 48, 32, 48), "hoja: se lee la referencia")
+	check(SpriteSheet.frame_texture("res://no_existe.png#0,0,8,8") == null, "hoja: hoja inexistente no rompe")
+	# Hoja con celdas: fondo gris, celdas fucsia separadas por líneas de 1 px y un
+	# bloque que cruza su celda de lado a lado (parte el fucsia en dos).
+	var gray := Color8(207, 213, 221)
+	var cells_sheet := Image.create_empty(200, 100, false, Image.FORMAT_RGBA8)
+	cells_sheet.fill(gray)
+	cells_sheet.fill_rect(Rect2i(0, 0, 60, 50), Color.MAGENTA)
+	cells_sheet.fill_rect(Rect2i(61, 0, 60, 50), Color.MAGENTA)
+	cells_sheet.fill_rect(Rect2i(140, 0, 60, 50), Color.MAGENTA)
+	cells_sheet.fill_rect(Rect2i(20, 10, 15, 35), Color.BLUE)
+	cells_sheet.fill_rect(Rect2i(80, 15, 20, 30), Color.RED)
+	cells_sheet.fill_rect(Rect2i(140, 30, 60, 8), Color.GREEN)
+	var colors := SpriteSheet.guess_cell_colors(cells_sheet)
+	check(colors[0].is_equal_approx(Color.MAGENTA) and colors[1].is_equal_approx(gray), "celdas: adivina relleno y separador")
+	var cells := SpriteSheet.detect_cells(cells_sheet, colors[1])
+	check(cells.size() == 3, "celdas: encuentra las tres celdas sin unirlas")
+	SpriteSheet.remove_colors(cells_sheet, colors)
+	var framed := SpriteSheet.trim_all(cells_sheet, cells)
+	var expected: Array[Rect2i] = [Rect2i(20, 10, 15, 35), Rect2i(80, 15, 20, 30), Rect2i(140, 30, 60, 8)]
+	check(framed == expected, "celdas: cada cuadro se recorta a lo dibujado")

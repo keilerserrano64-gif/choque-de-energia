@@ -765,7 +765,11 @@ static func _draw_chain_kick(ci: CanvasItem, kick_type: String, pose: String, ou
 
 static func _texture(path: String) -> Texture2D:
 	if not _textures.has(path):
-		_textures[path] = load(path) if ResourceLoader.exists(path) else null
+		if SpriteSheet.is_ref(path):
+			# Cuadro de una hoja de sprites: "ruta.png#x,y,ancho,alto".
+			_textures[path] = SpriteSheet.frame_texture(path)
+		else:
+			_textures[path] = load(path) if ResourceLoader.exists(path) else null
 	return _textures[path]
 
 

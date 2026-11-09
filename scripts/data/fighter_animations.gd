@@ -13,6 +13,7 @@ const ANIMATION_STYLES := {
 	"pedernal": {"attack": "heavy", "finisher": "stomp", "special": "fault"},
 	"luma": {"attack": "flow", "finisher": "light-palm", "special": "healing"},
 	"onix": {"attack": "heavy", "finisher": "meteor-fist", "special": "shard"},
+	"kakashi": {"attack": "drive", "finisher": "sonic-kick", "special": "afterimage"},
 }
 
 static var _cache: Dictionary = {}

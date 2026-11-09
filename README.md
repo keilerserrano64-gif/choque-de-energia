@@ -320,3 +320,28 @@ técnicas y una simulación larga con cada luchador.
 - Los escenarios tienen detalles animados (olas, estandartes, niebla y brasas).
 - Soporte de mandos.
 - Los botones táctiles tienen posición fija (en la web se podían arrastrar).
+
+## Hojas de sprites (un PNG con todos los cuadros)
+
+Un luchador puede usar una hoja de sprites en vez de un PNG por pose. En `catalog.gd`,
+cada cuadro se escribe como `"ruta.png#x,y,ancho,alto"` (lo recorta `scripts/data/sprite_sheet.gd`).
+
+Para preparar la hoja (quitar el fondo, encontrar los cuadros e igualarlos):
+
+```
+godot --headless --path . -s res://tools/slice_sheet.gd -- --sheet ruta/hoja.png --fighter id
+```
+
+1. Abre `tools/out/<id>_preview.png`: cada cuadro sale enmarcado en rojo y numerado.
+2. Escribe un `mapa.json` con los números de cada pose, por ejemplo
+   `{"idle": [0, 1, 2, 3], "walk": [4, 5, 6, 7], "jab": 8, "block": 12, "hurt": 14}`.
+3. Vuelve a lanzar con `--map mapa.json`: imprime el bloque `"sprites"`, `"sprite_anchor"` y
+   `"sprite_height"` para pegar en la entrada del luchador.
+
+La hoja limpia se guarda en `assets/fighters/<id>/<id>_sheet.png`, con todos los cuadros en celdas
+del mismo tamaño y los pies abajo al centro. Opciones: `--bg #rrggbb` si el fondo no es el
+de la esquina, `--cells auto` si cada cuadro va en una celda de color (p. ej. fucsia) separada
+de las demás por líneas o huecos de otro color (p. ej. gris), `--grid 64x64` o
+`--grid-cols 8 --grid-rows 4` (con `--offset X,Y` y `--spacing X,Y`) si la hoja viene en rejilla fija, `--gap` para juntar piezas sueltas
+y `--min` para ignorar textos y motas. Las claves de pose son las que ya admite el catálogo
+(idle, stance, walk, run, jump, block, jab, cross, hook, uppercut, special, hurt, fall, victory…).
