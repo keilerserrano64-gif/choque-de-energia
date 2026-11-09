@@ -1,0 +1,100 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/stage_select.gd" id="1_stage"]
+[ext_resource type="Script" path="res://scripts/ui/components/select_backdrop.gd" id="2_backdrop"]
+
+[node name="StageSelect" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_stage")
+
+[node name="Backdrop" type="Control" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("2_backdrop")
+
+[node name="Banner" type="ColorRect" parent="."]
+layout_mode = 0
+offset_left = 250.0
+offset_top = 10.0
+offset_right = 710.0
+offset_bottom = 50.0
+color = Color(0.76, 0.12, 0.2, 1)
+
+[node name="Title" type="Label" parent="Banner"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 0.0
+offset_top = 2.0
+offset_right = 460.0
+offset_bottom = 38.0
+text = "ELIGE EL ESCENARIO"
+horizontal_alignment = 1
+
+[node name="Matchup" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 0.0
+offset_top = 58.0
+offset_right = 960.0
+offset_bottom = 82.0
+text = ""
+horizontal_alignment = 1
+
+[node name="Cards" type="Control" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+
+[node name="StageName" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 0.0
+offset_top = 384.0
+offset_right = 960.0
+offset_bottom = 430.0
+text = ""
+horizontal_alignment = 1
+
+[node name="Difficulty" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 0.0
+offset_top = 436.0
+offset_right = 960.0
+offset_bottom = 466.0
+text = ""
+horizontal_alignment = 1
+
+[node name="Footer" type="ColorRect" parent="."]
+layout_mode = 0
+offset_left = 0.0
+offset_top = 496.0
+offset_right = 960.0
+offset_bottom = 540.0
+color = Color(0.02, 0.025, 0.045, 0.92)
+
+[node name="Hint" type="Label" parent="Footer"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 20.0
+offset_top = 12.0
+offset_right = 940.0
+offset_bottom = 32.0
+text = ""
+horizontal_alignment = 1
