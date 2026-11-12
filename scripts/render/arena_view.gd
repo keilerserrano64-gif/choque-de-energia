@@ -21,6 +21,12 @@ var _player_layer: DrawLayer
 var _fx_layer: DrawLayer
 ## AnimadorProcedural de cada luchador con imágenes (índice 0 = J1, 1 = rival).
 var _animadores: Dictionary = {}
+## Control de las intros y técnicas cinemáticas (índice del luchador -> {"sprite": ruta del
+## cuadro, "tint": Color que multiplica su capa (alfa incluido), "pose": pose del pintor
+## (p. ej. "down"), "anim"/"frames": cuadro de una animación real (p. ej. "fall" = tumbado),
+## "proc": {desp, escala, rot} movimiento extra en px de la imagen}).
+## Vacío = el combate normal.
+var cinematic: Dictionary = {}
 
 
 ## Capa de dibujo hija. Cada luchador tiene la suya para poder aplicarle su propio
@@ -49,6 +55,9 @@ func _make_layer(painter: Callable, with_shader: bool) -> DrawLayer:
 		var shader_material := ShaderMaterial.new()
 		shader_material.shader = FIGHTER_SHADER
 		layer.material = shader_material
+		# Filtro lineal + muestreo «pixel art nítido» del shader: píxeles uniformes y bordes
+		# limpios aunque la escala no sea entera o el animador gire y estire al luchador.
+		layer.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	add_child(layer)
 	return layer
 
@@ -64,8 +73,8 @@ func _process(delta: float) -> void:
 	if sim == null:
 		return
 	var light: Color = STAGE_LIGHT.get(String(sim.stage().get("decor", "")), Color.WHITE)
-	_enemy_layer.modulate = light
-	_player_layer.modulate = light
+	_enemy_layer.modulate = light * _cinematic_tint(sim.enemy.index)
+	_player_layer.modulate = light * _cinematic_tint(sim.player.index)
 	if sim.state == _previous_state:
 		state_elapsed += minf(delta, 1.0 / 30.0)
 	else:
@@ -79,6 +88,16 @@ func _process(delta: float) -> void:
 	_enemy_layer.queue_redraw()
 	_player_layer.queue_redraw()
 	_fx_layer.queue_redraw()
+
+
+func _cinematic_tint(index: int) -> Color:
+	var c: Variant = cinematic.get(index)
+	return (c as Dictionary).get("tint", Color.WHITE) if c is Dictionary else Color.WHITE
+
+
+## Capa en la que se dibuja un luchador (las intros ponen sus efectos delante o detrás).
+func fighter_layer(index: int) -> Node2D:
+	return _player_layer if index == sim.player.index else _enemy_layer
 
 
 ## Crea los animadores la primera vez, les pasa las acciones de la simulación
@@ -150,6 +169,21 @@ func _draw_overlay(ci: CanvasItem) -> void:
 
 ## Elige la animación y el cuadro de cada luchador (fighterAnimation()).
 func fighter_animation(f: FighterState) -> Dictionary:
+	var cine_f: Variant = cinematic.get(f.index)
+	if cine_f is Dictionary:
+		if (cine_f as Dictionary).has("sprite"):
+			# La cinemática elige el cuadro; aquí solo una pose quieta.
+			return {"pose": String((cine_f as Dictionary).get("pose", "intro")), "name": "intro", "progress": 0.0}
+		if (cine_f as Dictionary).has("anim"):
+			# Un cuadro concreto de una animación real del luchador (p. ej. el final de "fall": tumbado).
+			var lista := FighterAnimations.for_fighter(f.id)
+			var nombre := String((cine_f as Dictionary)["anim"])
+			if lista.has(nombre):
+				var total := float(FighterAnimations.duration(lista[nombre]))
+				var cuadro := FighterAnimations.frame_at(lista[nombre], minf(float((cine_f as Dictionary).get("frames", total)), total - 0.01))
+				cuadro["name"] = nombre
+				cuadro["progress"] = 0.999
+				return cuadro
 	var anim_name := "idle"
 	var elapsed_frames := sim.elapsed * 60.0 if sim.state == "playing" else state_elapsed * 60.0
 	var anims := FighterAnimations.for_fighter(f.id)
@@ -192,10 +226,17 @@ func fighter_animation(f: FighterState) -> Dictionary:
 		anim_name = "run" if f.running else "walk"
 	var frame := FighterAnimations.frame_at(anims[anim_name], elapsed_frames)
 	frame["name"] = anim_name
+	# Avance de 0 a 1 dentro de la animación (lo usan las secuencias seq_<animación>).
+	var total := float(FighterAnimations.duration(anims[anim_name]))
+	if bool(anims[anim_name]["loop"]):
+		frame["progress"] = fposmod(elapsed_frames, total) / total
+	else:
+		frame["progress"] = clampf(elapsed_frames / total, 0.0, 0.999)
 	return frame
 
 
 func _draw_fighter(ci: CanvasItem, f: FighterState) -> void:
+	FighterPainter.siluetas = true
 	var definition := f.definition
 	var accent := Catalog.color(String(definition["accent"]))
 	var trim := Catalog.color(String(definition["trim"]))
@@ -230,7 +271,7 @@ func _draw_fighter(ci: CanvasItem, f: FighterState) -> void:
 	elif f.hit_flash > 0.0:
 		flash = Catalog.color("#ff272b") if f.id == "brasa" else Catalog.color("#f2e7d2")
 	_draw_charge_aura(ci, f, x, foot, frame)
-	if f.id == "volt" and f.awakening_time > 0.0:
+	if f.volt_kit() and f.awakening_time > 0.0:
 		FighterPainter.draw_volt_armor(ci, x, foot, t)
 	elif f.awakening_time > 0.0:
 		_draw_awakening_flames(ci, f, x, foot, t, accent)
@@ -247,8 +288,20 @@ func _draw_fighter(ci: CanvasItem, f: FighterState) -> void:
 		animador.ultimo_tiempo = t
 		_draw_estelas(ci, animador, base)
 		FighterPainter.procedural = animador.salida()
+	var cine: Variant = cinematic.get(f.index)
+	if cine is Dictionary:
+		FighterPainter.forced_sprite = String((cine as Dictionary).get("sprite", ""))
+		var extra: Variant = (cine as Dictionary).get("proc")
+		if extra is Dictionary:
+			var proc := {"desp": Vector2.ZERO, "escala": Vector2.ONE, "rot": 0.0, "color": Color.WHITE, "ko": false}
+			proc.merge(FighterPainter.procedural, true)
+			proc["desp"] = (proc["desp"] as Vector2) + ((extra as Dictionary).get("desp", Vector2.ZERO) as Vector2)
+			proc["escala"] = (proc["escala"] as Vector2) * ((extra as Dictionary).get("escala", Vector2.ONE) as Vector2)
+			proc["rot"] = float(proc["rot"]) + float((extra as Dictionary).get("rot", 0.0))
+			FighterPainter.procedural = proc
 	FighterPainter.draw_body(ci, base, x, foot, f, flash, frame, t, victorious)
 	FighterPainter.procedural = {}
+	FighterPainter.forced_sprite = ""
 
 	if f.special_charge > 0.0 and f.id == "brasa":
 		var hand_x := x + f.facing * 39
@@ -256,7 +309,7 @@ func _draw_fighter(ci: CanvasItem, f: FighterState) -> void:
 		var pulse := roundf(2.0 + sin(t * 25.0) * 1.5)
 		FighterPainter.box(ci, hand_x - pulse, hand_y - pulse, pulse * 2 + 1, pulse * 2 + 1, Catalog.color("#fff8c7"))
 		FighterPainter.box(ci, hand_x - 8, hand_y - 8, 17, 1, Color(1.0, 215 / 255.0, 74 / 255.0, 0.68))
-	if f.id == "volt" and f.awakening_time > 0.0:
+	if f.volt_kit() and f.awakening_time > 0.0:
 		var pulse_v := sin(t * 24.0)
 		FighterPainter.alpha = 0.38 + absf(pulse_v) * 0.24
 		FighterPainter.ellipse(ci, Vector2(x, foot - 34), 24 + roundf((pulse_v + 1.0) * 2.0), 39, Catalog.color("#d6fff5"), 2.0)
@@ -312,9 +365,12 @@ func _draw_shadow(ci: CanvasItem, x: float, f: FighterState) -> void:
 ## Copias del luchador que se desvanecen detrás de él durante el dash.
 func _draw_estelas(ci: CanvasItem, animador: AnimadorProcedural, base: Transform2D) -> void:
 	var ghost := animador.fantasma
+	FighterPainter.siluetas = true
 	for estela in animador.estelas:
 		var e: Dictionary = estela
-		var color := animador.color_estela
+		# Silueta del color de energía del luchador (no una copia oscura y borrosa).
+		var acento := Catalog.color(String(ghost.definition.get("accent", "#7fe8ff"))).lightened(0.2)
+		var color := FighterPainter.silueta(acento, animador.color_estela.a)
 		FighterPainter.alpha = clampf(float(e["vida"]) / AnimadorProcedural.VIDA_ESTELA, 0.0, 1.0)
 		ghost.facing = int(e["facing"])
 		FighterPainter.procedural = {"desp": e["desp"], "escala": e["escala"], "rot": e["rot"], "color": color, "ko": false}
@@ -338,7 +394,7 @@ func _draw_charge_effects(ci: CanvasItem, f: FighterState, x: float, foot: float
 		return
 	var duration := sim.special_charge_duration(String(f.definition["special"]))
 	var charge_pulse := 1 + roundi((1.0 - f.special_charge / duration) * 3.0)
-	match f.id:
+	match "volt" if f.volt_kit() else f.id:
 		"volt":
 			for i in range(4):
 				var x_offset := roundf(sin(t * 28.0 + i * 2.0) * (9.0 + i * 3.0))

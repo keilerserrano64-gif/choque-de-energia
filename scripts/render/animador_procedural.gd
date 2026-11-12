@@ -62,6 +62,15 @@ var ultimo_tiempo := 0.0
 var fantasma: FighterState
 
 const VIDA_ESTELA := 0.25
+const AutoAnim2D := preload("res://scripts/data/auto_anim_2d.gd")
+
+## Animaciones AutoAnim 2D del luchador (panel AutoAnim del editor): si una acción
+## tiene una, se reproduce en lugar del movimiento fijo de este script.
+var auto_anim_id := ""
+var _clip: Dictionary = {}
+var _clip_t := 0.0
+var _auto_anim_contador := 0
+var _clip_color := Color.WHITE
 
 var _t := 0.0
 var _pos_anterior := Vector2.INF
@@ -78,14 +87,38 @@ var _tween_color: Tween
 
 func preparar(f: FighterState) -> void:
 	fantasma = FighterState.new(f.id, f.x, f.facing)
+	auto_anim_id = f.id
 
 
 ## Diccionario que FighterPainter aplica al dibujar (ver FighterPainter.procedural).
 func salida() -> Dictionary:
 	return {
 		"desp": salida_desp, "escala": salida_escala, "rot": salida_rot,
-		"color": salida_color, "ko": _sin_respirar,
+		"color": salida_color * _clip_color, "ko": _sin_respirar,
 	}
+
+
+## Si el luchador tiene una animación AutoAnim para `accion`, la empieza y devuelve true.
+func usar_auto_anim(accion: String, opciones: Dictionary = {}) -> bool:
+	if auto_anim_id == "" or _sin_respirar:
+		return false
+	var parametros := opciones.duplicate()
+	parametros["semilla"] = _auto_anim_contador
+	_auto_anim_contador += 1
+	var anim := AutoAnim2D.para_accion(auto_anim_id, accion, parametros)
+	if anim.is_empty():
+		return false
+	if _tween and _tween.is_valid():
+		_tween.kill()
+	_clip = anim
+	_clip_t = 0.0
+	return true
+
+
+func _parar_auto_anim() -> void:
+	_clip = {}
+	_clip_t = 0.0
+	_clip_color = Color.WHITE
 
 
 # ---------------------------------------------------------------------------
@@ -104,9 +137,11 @@ func actualizar(f: FighterState, delta: float) -> void:
 	# Despegue y aterrizaje: se usa el estado de la simulación, que es exacto.
 	if not f.knocked_down and not _sin_respirar:
 		if _en_suelo_antes and not f.grounded and f.velocity_y < 0.0:
-			saltar()
+			if not usar_auto_anim("salto"):
+				saltar()
 		elif not _en_suelo_antes and f.grounded:
-			aterrizar()
+			if not usar_auto_anim("aterrizaje"):
+				aterrizar()
 	_en_suelo_antes = f.grounded
 
 	_componer(f, delta)
@@ -118,6 +153,19 @@ func actualizar(f: FighterState, delta: float) -> void:
 # ---------------------------------------------------------------------------
 func _componer(f: FighterState, delta: float) -> void:
 	_t += delta
+	if not _clip.is_empty():
+		_clip_t += delta
+		if _clip_t >= float(_clip["duracion"]):
+			_parar_auto_anim()
+			desp_accion = Vector2.ZERO
+			escala_accion = Vector2.ONE
+			rot_accion = 0.0
+		else:
+			var s := AutoAnim2D.muestrear(_clip, _clip_t)
+			desp_accion = s["desp"]
+			escala_accion = s["escala"]
+			rot_accion = float(s["rot"])
+			_clip_color = s["color"]
 	var off := Vector2.ZERO
 	var esc := Vector2.ONE
 	var rot := 0.0
@@ -169,6 +217,7 @@ func _actualizar_estelas(f: FighterState, delta: float) -> void:
 
 
 func _nuevo_tween() -> Tween:
+	_parar_auto_anim()
 	if _tween and _tween.is_valid():
 		_tween.kill()
 	_tween = create_tween()
@@ -299,6 +348,7 @@ func victoria() -> Tween:
 
 ## Devuelve todo a la normalidad (al empezar una ronda nueva).
 func reiniciar() -> void:
+	_parar_auto_anim()
 	if _tween and _tween.is_valid():
 		_tween.kill()
 	if _tween_color and _tween_color.is_valid():
@@ -323,7 +373,20 @@ func temblar(duracion := 0.15, fuerza := 3.0) -> void:
 
 ## Ejecuta una acción a partir de un evento de CombatSim.anim_events.
 func ejecutar(evento: Dictionary, f: FighterState) -> void:
-	match String(evento.get("tipo", "")):
+	var tipo := String(evento.get("tipo", ""))
+	if AutoAnim2D.ACCIONES.has(tipo) and usar_auto_anim(tipo, {"fuerza": float(evento.get("fuerza", 1.0))}):
+		# Animación del panel AutoAnim; el dash conserva su estela.
+		if tipo == "dash":
+			_estela_tiempo = float(_clip["duracion"])
+			_estela_reloj = 0.0
+			if evento.has("desde"):
+				_estela_en_recorrido(float(evento["desde"]), f)
+		return
+	# El derribo ya se dibuja desde FighterState; sin clip no añade otro golpe.
+	if tipo == "derribo":
+		return
+	var base := String(evento.get("base", AutoAnim2D.RESPALDO.get(tipo, tipo)))
+	match base:
 		"golpe":
 			golpe()
 		"patada":

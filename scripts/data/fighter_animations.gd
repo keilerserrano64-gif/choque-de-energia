@@ -5,15 +5,16 @@ extends RefCounted
 ##   duration (cuadros), pose (String) y detalles opcionales: bob, sway, arm, leg,
 ##   lean, smear, aura, hair, style, hitbox {x, y, w, h}.
 
+## "like": id de otro luchador cuyos tiempos de animación se copian (lo pone el importador).
 const ANIMATION_STYLES := {
-	"volt": {"attack": "drive", "finisher": "sonic-kick", "special": "afterimage"},
-	"marea": {"attack": "flow", "finisher": "rising-wave", "special": "shell-guard"},
-	"cobalto": {"attack": "aim", "finisher": "prism-cut", "special": "lance"},
-	"espejo": {"attack": "feint", "finisher": "echo-strike", "special": "mirror"},
-	"pedernal": {"attack": "heavy", "finisher": "stomp", "special": "fault"},
-	"luma": {"attack": "flow", "finisher": "light-palm", "special": "healing"},
-	"onix": {"attack": "heavy", "finisher": "meteor-fist", "special": "shard"},
-	"kakashi": {"attack": "drive", "finisher": "sonic-kick", "special": "afterimage"},
+	"kakashi": {"attack": "drive", "finisher": "sonic-kick", "special": "afterimage", "like": "volt"},
+	"naruto": {"attack": "drive", "finisher": "sonic-kick", "special": "afterimage"},
+	"ban": {"attack": "drive", "finisher": "sonic-kick", "special": "afterimage", "like": "naruto"},
+	"todo": {"attack": "drive", "finisher": "sonic-kick", "special": "afterimage", "like": "naruto"},
+	"adam": {"attack": "drive", "finisher": "sonic-kick", "special": "afterimage", "like": "naruto"},
+	"madara": {"attack": "drive", "finisher": "sonic-kick", "special": "afterimage", "like": "naruto"},
+	"madara_edo": {"attack": "drive", "finisher": "sonic-kick", "special": "afterimage", "like": "naruto"},
+	"itachi": {"attack": "drive", "finisher": "sonic-kick", "special": "afterimage", "like": "naruto"},
 }
 
 static var _cache: Dictionary = {}
@@ -34,7 +35,7 @@ static func _anim(loop: bool, frames: Array) -> Dictionary:
 ## ataques, charge, special, hurt, fall, getup, victory, intro).
 static func for_fighter(id: String) -> Dictionary:
 	if not _cache.has(id):
-		var set_: Dictionary = _brasa() if id == "brasa" else _generic(id)
+		var set_: Dictionary = _brasa() if like(id) == "brasa" else _generic(id)
 		set_.merge(_strikes(id), true)
 		_cache[id] = set_
 	return _cache[id]
@@ -165,11 +166,18 @@ static func _brasa() -> Dictionary:
 	}
 
 
-static func _generic(id: String) -> Dictionary:
-	if not ANIMATION_STYLES.has(id):
-		push_error("Estilo de animación desconocido: %s" % id)
+## Luchador cuyos tiempos de animación copia `id` (clave "like" de su estilo; los
+## luchadores creados con el importador copian los de su base). Si no, él mismo.
+static func like(id: String) -> String:
+	return String((ANIMATION_STYLES.get(id, {}) as Dictionary).get("like", id))
+
+
+static func _generic(fighter_id: String) -> Dictionary:
+	var id := like(fighter_id)
+	if not ANIMATION_STYLES.has(fighter_id):
+		push_error("Estilo de animación desconocido: %s" % fighter_id)
 		return _brasa()
-	var style: Dictionary = ANIMATION_STYLES[id]
+	var style: Dictionary = ANIMATION_STYLES[fighter_id]
 	var attack_style: String = style["attack"]
 	var finisher_style: String = style["finisher"]
 	var special_style: String = style["special"]
@@ -263,7 +271,8 @@ static func _generic(id: String) -> Dictionary:
 ##   punch: "jab" | "cross" | "hook" | "upper"   (forma del puñetazo)
 ##   kick:  "low" | "mid" | "high" | "spin"      (altura de la patada)
 ##   turn:  true = cuadro de espaldas (giro de la patada giratoria)
-static func _strikes(id: String) -> Dictionary:
+static func _strikes(fighter_id: String) -> Dictionary:
+	var id := like(fighter_id)
 	var slow := 1 if (id == "pedernal" or id == "onix") else 0
 	var fast := 1 if id == "volt" else 0
 	var w := func(frames: int) -> int: return maxi(2, frames + slow - fast)

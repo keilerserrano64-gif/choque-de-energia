@@ -6,7 +6,7 @@ extends Control
 
 enum Crop { FULL, BUST, HEAD }
 
-@export var fighter_id := "brasa":
+@export var fighter_id := "kakashi":
 	set(value):
 		fighter_id = value
 		_rebuild()
@@ -25,7 +25,16 @@ var _state: FighterState
 var _time := 0.0
 
 
+const SHADER_LUCHADOR := preload("res://shaders/fighter_fx.gdshader")
+
+
 func _ready() -> void:
+	# Mismo dibujo nítido que en el combate: píxeles uniformes aunque el retrato amplíe al
+	# luchador a una escala no entera (sin glow ni surge, el shader no cambia nada más).
+	var mat := ShaderMaterial.new()
+	mat.shader = SHADER_LUCHADOR
+	material = mat
+	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	clip_contents = true
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_rebuild()
@@ -71,6 +80,7 @@ func _draw() -> void:
 	var frame := FighterAnimations.frame_at(anim, _time * 60.0)
 	frame["name"] = animation
 	var body := Catalog.color(String(_state.definition["color"]))
+	FighterPainter.siluetas = false  # aquí no hay fighter_fx.gdshader
 	FighterPainter.draw_body(self, base, 0.0, 0.0, _state, body, frame, _time, animation == "victory")
 	draw_set_transform_matrix(Transform2D.IDENTITY)
 	FighterPainter.alpha = 1.0

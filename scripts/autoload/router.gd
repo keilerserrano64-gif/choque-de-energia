@@ -3,6 +3,7 @@ extends CanvasLayer
 ## con un fundido. Flujo: menú → selección → escenario → combate → resultado.
 
 const SCENES := {
+	"title": "res://scenes/title_screen.tscn",
 	"menu": "res://scenes/main_menu.tscn",
 	"select": "res://scenes/character_select.tscn",
 	"stage": "res://scenes/stage_select.tscn",
@@ -14,10 +15,10 @@ const MODE_NAMES := {
 
 ## arcade | versus | cpu | training
 var mode := "cpu"
-var p1_id := "brasa"
-var p2_id := "onix"
+var p1_id := "kakashi"
+var p2_id := "kakashi"
 var stage_id := "brumaria"
-var difficulty_id := "challenging"
+var difficulty_id := "standard"  # Normal; en VS CPU se puede subir
 var arcade_ladder: Array[String] = []
 var arcade_index := 0
 var arcade_continues := 0
@@ -34,17 +35,34 @@ func _ready() -> void:
 	add_child(_wipe)
 
 
+## También bloquea entradas de mando mientras la nueva escena aparece.
+func is_busy() -> bool:
+	return _busy
+
+
+func _input(event: InputEvent) -> void:
+	if _busy and (event is InputEventKey or event is InputEventJoypadButton
+			or event is InputEventJoypadMotion or event is InputEventMouseButton):
+		# Input actualiza sus acciones antes de despachar _input. Consumir el
+		# evento solo protege la GUI. Soltar evita conservar acciones mantenidas
+		# al acabar el wipe; el árbol en pausa protege las consultas just_pressed.
+		for action in InputMap.get_actions():
+			if event.is_action(action):
+				Input.action_release(action)
+		get_viewport().set_input_as_handled()
+
+
 func goto(scene_key: String, fade_time: float = 0.22) -> void:
 	if _busy or not SCENES.has(scene_key):
 		return
 	_busy = true
+	get_tree().paused = true
 	_wipe.mouse_filter = Control.MOUSE_FILTER_STOP
 	_wipe.revealing = false
 	_wipe.progress = 0.0
 	var tween := create_tween()
 	tween.tween_property(_wipe, "progress", 1.0, fade_time * 1.6)
 	await tween.finished
-	get_tree().paused = false
 	Engine.time_scale = 1.0
 	get_tree().change_scene_to_file(SCENES[scene_key])
 	await get_tree().process_frame
@@ -55,6 +73,7 @@ func goto(scene_key: String, fade_time: float = 0.22) -> void:
 	_wipe.revealing = false
 	_wipe.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_busy = false
+	get_tree().paused = false
 
 
 func begin(new_mode: String) -> void:
@@ -83,7 +102,7 @@ func mode_label() -> String:
 	return String(MODE_NAMES.get(mode, "VS CPU"))
 
 
-# --- Arcade: escalera de siete rivales con dificultad creciente ---------------
+# --- Arcade: escalera de rivales (espejo si solo hay un luchador) -------------
 
 func start_arcade(player_id: String) -> void:
 	p1_id = player_id
@@ -92,6 +111,10 @@ func start_arcade(player_id: String) -> void:
 		if fighter["id"] != player_id:
 			arcade_ladder.append(String(fighter["id"]))
 	arcade_ladder.shuffle()
+	# Con un solo luchador: combates espejo, uno por escenario.
+	if arcade_ladder.is_empty():
+		for i in Catalog.STAGES.size():
+			arcade_ladder.append(player_id)
 	arcade_index = 0
 	arcade_continues = 0
 	_prepare_arcade_fight()
@@ -100,12 +123,8 @@ func start_arcade(player_id: String) -> void:
 func _prepare_arcade_fight() -> void:
 	p2_id = arcade_ladder[arcade_index]
 	stage_id = String(Catalog.STAGES[arcade_index % Catalog.STAGES.size()]["id"])
-	if arcade_index < 2:
-		difficulty_id = "standard"
-	elif arcade_index < 5:
-		difficulty_id = "challenging"
-	else:
-		difficulty_id = "expert"
+	# Todo el arcade en Normal (antes subía a Desafío y Experto).
+	difficulty_id = "standard"
 
 
 ## Pasa al siguiente rival. Devuelve false si ya no quedan (arcade completado).

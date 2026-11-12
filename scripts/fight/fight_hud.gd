@@ -145,7 +145,7 @@ func setup(combat: CombatSim) -> void:
 		_portraits[side].fighter_id = f.id
 		_bars[side].set_value_instant(f.health)
 	if sim.mode == "training":
-		_training.text = "ENTRENAMIENTO · J puños · K patadas · J/K + I remate · L técnica · rojo = hitbox · ESC pausa"
+		_training.text = "ENTRENAMIENTO · I puños · J patadas · L fuerte (↓+L patada) · K técnica · rojo = hitbox · ESC pausa"
 	else:
 		_training.text = "ESC  PAUSA"
 

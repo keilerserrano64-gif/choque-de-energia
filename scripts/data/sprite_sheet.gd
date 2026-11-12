@@ -130,6 +130,16 @@ static func remove_colors(image: Image, colors: Array, tolerance := 0.04) -> voi
 	image.set_data(image.get_width(), image.get_height(), false, Image.FORMAT_RGBA8, data)
 
 
+## Deja transparente todo lo que queda fuera de los rectángulos (líneas y huecos entre
+## celdas) sin tocar lo de dentro: así un color parecido al separador dentro de un dibujo
+## (pelo gris o blanco, por ejemplo) no se borra.
+static func clear_outside(image: Image, rects: Array[Rect2i]) -> void:
+	var kept := Image.create_empty(image.get_width(), image.get_height(), false, Image.FORMAT_RGBA8)
+	for rect in rects:
+		kept.blit_rect(image, rect, rect.position)
+	image.copy_from(kept)
+
+
 static func remove_background(image: Image, background: Color, tolerance := 0.04) -> void:
 	remove_colors(image, [background], tolerance)
 
@@ -177,6 +187,60 @@ static func detect_cells(image: Image, separator: Color, tolerance := 0.04, min_
 	return _filter_sort(_components(mask, image.get_width(), image.get_height()), min_size)
 
 
+## Borra líneas rectas de un solo color (subrayados, marcos, separadores dibujados):
+## tramos horizontales o verticales de `min_length` píxeles o más del mismo color, con
+## transparencia a un lado. Devuelve cuántos píxeles se han borrado.
+static func remove_lines(image: Image, min_length := 20) -> int:
+	var w := image.get_width()
+	var h := image.get_height()
+	var data := image.get_data()
+	var clear := PackedByteArray()
+	clear.resize(w * h)
+	for vertical in [false, true]:
+		var outer := w if vertical else h
+		var inner := h if vertical else w
+		for a in outer:
+			var run_start := 0
+			for b in inner + 1:
+				var same := false
+				if b < inner and b > run_start:
+					var i0 := ((run_start * w + a) if vertical else (a * w + run_start)) * 4
+					var i1 := ((b * w + a) if vertical else (a * w + b)) * 4
+					same = data[i1 + 3] > 0 and data[i0 + 3] > 0 and data[i0] == data[i1] 						and data[i0 + 1] == data[i1 + 1] and data[i0 + 2] == data[i1 + 2]
+				elif b < inner:
+					same = true
+				if not same:
+					var length := b - run_start
+					var i0 := ((run_start * w + a) if vertical else (a * w + run_start)) * 4
+					if length >= min_length and data[i0 + 3] > 0 and _thin(data, w, h, a, run_start, b, vertical):
+						for k in range(run_start, b):
+							clear[(k * w + a) if vertical else (a * w + k)] = 1
+					run_start = b
+	var count := 0
+	for p in clear.size():
+		if clear[p] == 1:
+			data[p * 4 + 3] = 0
+			count += 1
+	image.set_data(w, h, false, Image.FORMAT_RGBA8, data)
+	return count
+
+
+## true si el tramo tiene transparencia a un lado en la mayor parte de su largo (es una
+## línea suelta, no el borde de un dibujo grande).
+static func _thin(data: PackedByteArray, w: int, h: int, a: int, from: int, to: int, vertical: bool) -> bool:
+	var open := 0
+	for k in range(from, to):
+		var empty_side := false
+		for side in [-1, 1]:
+			var x: int = a + side if vertical else k
+			var y: int = k if vertical else a + side
+			if x < 0 or y < 0 or x >= w or y >= h or data[(y * w + x) * 4 + 3] == 0:
+				empty_side = true
+		if empty_side:
+			open += 1
+	return open >= (to - from) * 0.8
+
+
 ## Rectángulo de los píxeles opacos dentro de `rect` (vacío si no hay nada dibujado).
 static func trim(image: Image, rect: Rect2i) -> Rect2i:
 	var used := image.get_region(rect).get_used_rect()
@@ -198,15 +262,17 @@ static func trim_all(image: Image, rects: Array[Rect2i]) -> Array[Rect2i]:
 ## armas sueltas). Descarta lo que mida menos de `min_size` de ancho o alto (textos,
 ## motas). Devuelve los rectángulos ordenados por filas, de izquierda a derecha.
 ## Si todo sale en uno o dos bloques enormes, la hoja tiene celdas: usa detect_cells.
-static func detect_frames(image: Image, min_size := 8, merge_gap := 2) -> Array[Rect2i]:
+## diagonal = false: dos píxeles que solo se tocan en diagonal no unen cuadros (sprites muy juntos).
+static func detect_frames(image: Image, min_size := 8, merge_gap := 2, diagonal := true) -> Array[Rect2i]:
 	var data := image.get_data()
 	var mask := PackedByteArray()
 	mask.resize(image.get_width() * image.get_height())
 	for p in mask.size():
 		if data[p * 4 + 3] > 0:
 			mask[p] = 1
-	var boxes := _components(mask, image.get_width(), image.get_height())
-	return _filter_sort(_merge_close(boxes, merge_gap), min_size)
+	var boxes := _components(mask, image.get_width(), image.get_height(), diagonal)
+	# merge_gap < 0: no junta piezas (hojas muy apretadas, donde los rectángulos se solapan).
+	return _filter_sort(boxes if merge_gap < 0 else _merge_close(boxes, merge_gap), min_size)
 
 
 static func _filter_sort(boxes: Array[Rect2i], min_size: int) -> Array[Rect2i]:
@@ -218,7 +284,7 @@ static func _filter_sort(boxes: Array[Rect2i], min_size: int) -> Array[Rect2i]:
 
 
 ## Rectángulos de los grupos de casillas a 1 de la máscara (vecindad de 8).
-static func _components(mask: PackedByteArray, w: int, h: int) -> Array[Rect2i]:
+static func _components(mask: PackedByteArray, w: int, h: int, diagonal := true) -> Array[Rect2i]:
 	var boxes: Array[Rect2i] = []
 	var stack := PackedInt32Array()
 	for start in mask.size():
@@ -244,6 +310,8 @@ static func _components(mask: PackedByteArray, w: int, h: int) -> Array[Rect2i]:
 				if ny < 0 or ny >= h:
 					continue
 				for dx in [-1, 0, 1]:
+					if not diagonal and dx != 0 and dy != 0:
+						continue
 					var nx: int = px + dx
 					if nx < 0 or nx >= w:
 						continue
@@ -296,7 +364,11 @@ static func sort_reading_order(boxes: Array[Rect2i]) -> Array[Rect2i]:
 
 ## Punto de los pies dentro del cuadro: centro de los píxeles opacos de las filas
 ## más bajas (`band` filas). Devuelve coordenadas relativas al rectángulo.
-static func feet_point(image: Image, rect: Rect2i, band := 4) -> Vector2:
+## robust = true: franja más alta (6 % del cuadro) y mediana en vez de media, para que
+## un arma o una capa que toca el suelo no aparte el punto de los pies.
+static func feet_point(image: Image, rect: Rect2i, band := 4, robust := false) -> Vector2:
+	if robust:
+		band = maxi(band, int(rect.size.y * 0.06))
 	var bottom := -1
 	for y in range(rect.end.y - 1, rect.position.y - 1, -1):
 		for x in range(rect.position.x, rect.end.x):
@@ -309,11 +381,17 @@ static func feet_point(image: Image, rect: Rect2i, band := 4) -> Vector2:
 		return Vector2(rect.size.x / 2.0, rect.size.y)
 	var sum := 0.0
 	var count := 0
+	var xs := PackedInt32Array()
 	for y in range(maxi(rect.position.y, bottom - band + 1), bottom + 1):
 		for x in range(rect.position.x, rect.end.x):
 			if image.get_pixel(x, y).a > 0.0:
 				sum += x
 				count += 1
+				if robust:
+					xs.append(x)
+	if robust:
+		xs.sort()
+		return Vector2(xs[xs.size() / 2] + 0.5 - rect.position.x, bottom + 1 - rect.position.y)
 	# +0.5: centro del píxel, no su esquina.
 	return Vector2(sum / count + 0.5 - rect.position.x, bottom + 1 - rect.position.y)
 
@@ -322,13 +400,16 @@ static func feet_point(image: Image, rect: Rect2i, band := 4) -> Vector2:
 ## centro del borde inferior de cada celda. Así todas las imágenes del luchador tienen
 ## la misma escala y basta un solo "sprite_anchor": Vector2(celda.x / 2, celda.y).
 ## Devuelve {"image": Image, "cell": Vector2i, "columns": int}.
-static func pack_uniform(image: Image, rects: Array[Rect2i], columns := 8, padding := 2) -> Dictionary:
+## shifts: {posición en rects: Vector2i} mueve ese cuadro dentro de su celda (correcciones
+## a mano de cuadros que quedan desplazados).
+static func pack_uniform(image: Image, rects: Array[Rect2i], columns := 8, padding := 2,
+		robust_feet := false, shifts := {}) -> Dictionary:
 	var left := 0.0
 	var right := 0.0
 	var height := 0
 	var feet: Array[Vector2] = []
 	for rect in rects:
-		var foot := feet_point(image, rect)
+		var foot := feet_point(image, rect, 4, robust_feet)
 		feet.append(foot)
 		left = maxf(left, foot.x)
 		right = maxf(right, rect.size.x - foot.x)
@@ -341,5 +422,10 @@ static func pack_uniform(image: Image, rects: Array[Rect2i], columns := 8, paddi
 	for i in rects.size():
 		var target := grid_rect(cell, columns, i)
 		var dest := target.position + Vector2i(half - int(roundf(feet[i].x)), cell.y - int(feet[i].y))
-		out.blend_rect(image, rects[i], dest)
+		dest += shifts.get(i, Vector2i.ZERO)
+		# Recorta lo que una corrección empuje fuera de su celda (no pisa a la vecina).
+		var src := rects[i]
+		var placed := Rect2i(dest, src.size).intersection(target)
+		if placed.has_area():
+			out.blend_rect(image, Rect2i(src.position + placed.position - dest, placed.size), placed.position)
 	return {"image": out, "cell": cell, "columns": columns}

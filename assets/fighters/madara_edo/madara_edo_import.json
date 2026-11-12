@@ -1,0 +1,95 @@
+{
+  "sheet": "fuentes/madara_edo.png",
+  "options": {
+    "bg": "#008000",
+    "scale": "1",
+    "split": true,
+    "jpeg": false,
+    "detector": "v2"
+  },
+  "map": {
+    "idle": [
+      13,
+      75,
+      119,
+      152,
+      178,
+      201,
+      220,
+      240
+    ],
+    "stance": 13,
+    "walk": [
+      276,
+      306,
+      321,
+      344,
+      357,
+      371
+    ],
+    "run": 399,
+    "run_alt": 446,
+    "jump": 145,
+    "block": 326,
+    "jab_anticipate": 161,
+    "jab": 197,
+    "light": 254,
+    "cross": 3,
+    "hook": 404,
+    "heavy": 431,
+    "heavy_impact": 460,
+    "uppercut": 484,
+    "throw": 207,
+    "finisher": 453,
+    "finisher_impact": 470,
+    "kick_mid": 141,
+    "kick_spin": 384,
+    "sweep": 281,
+    "air_punch": 223,
+    "air_kick": 170,
+    "hurt": [
+      15,
+      78,
+      143
+    ],
+    "fall": 174,
+    "down": 294,
+    "charge": [
+      347,
+      361,
+      379,
+      396,
+      408
+    ],
+    "special": [
+      37,
+      100
+    ],
+    "intro": [
+      664,
+      665,
+      666,
+      422,
+      437,
+      466
+    ],
+    "victory": [
+      669,
+      670,
+      671,
+      672,
+      673
+    ],
+    "_frame_time": {
+      "idle": 0.12,
+      "walk": 0.1,
+      "charge": 0.08,
+      "special": 0.14,
+      "intro": 0.16,
+      "victory": 0.16
+    }
+  },
+  "base": "madara",
+  "flip": false,
+  "name": "Madara Edo"
+}

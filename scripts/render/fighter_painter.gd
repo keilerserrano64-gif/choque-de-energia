@@ -17,6 +17,8 @@ static var alpha := 1.0
 ## Centro aproximado de la cara de los luchadores dibujados con rectángulos
 ## (unidades del sprite, pies en 0,0). Sirve para encuadrar los retratos.
 const GENERIC_HEAD := Vector2(0.5, -39.5)
+## Prefijo de las secuencias de cuadros por animación (seq_jab, seq_run, seq_hurt...).
+const SEQUENCE_PREFIX := "seq_"
 const SPRITE_ATTACK_POSES := ["anticipate", "punch", "smear", "impact", "recover", "kick"]
 ## Imagen que usan los golpes de cadena si el luchador no tiene una propia
 ## (p. ej. Volt usa su puñetazo "light" para el jab y su patada "finisher" para todas las patadas).
@@ -48,9 +50,21 @@ static var _textures: Dictionary = {}
 ## ArenaView la pone antes de draw_body() y la vacía después. Vacío = sin animador.
 static var procedural: Dictionary = {}
 
+## Imagen forzada para el siguiente draw_body() (ruta "hoja.png#x,y,w,h"). La usan las
+## intros cinemáticas para elegir cuadros concretos. ArenaView la vacía después. "" = normal.
+static var forced_sprite := ""
+## true mientras dibuja ArenaView (sus capas tienen fighter_fx.gdshader, que sabe pintar
+## siluetas). Los retratos de los menús no tienen ese shader.
+static var siluetas := false
+
 
 static func c(hex: String) -> Color:
 	return Catalog.color(hex)
+
+
+## Color que fighter_fx.gdshader entiende como «silueta de este color» (estelas).
+static func silueta(color: Color, a: float) -> Color:
+	return Color(-1.0 - color.r, -1.0 - color.g, -1.0 - color.b, a)
 
 
 static func box(ci: CanvasItem, x: float, y: float, w: float, h: float, color: Color) -> void:
@@ -773,6 +787,66 @@ static func _texture(path: String) -> Texture2D:
 	return _textures[path]
 
 
+## Calidad HD activada (se puede apagar desde Opciones; si no hay hoja HD no cambia nada).
+static var calidad_hd := true
+static var _hd: Dictionary = {}       ## hoja normal -> {tex, factor} (o {} si no tiene)
+static var _hd_cuadros: Dictionary = {}
+static var _ajustes: Dictionary = {}  ## hoja normal -> {"x,y,w,h": Vector2}
+
+
+static func _info_hd(hoja: String) -> Dictionary:
+	if not _hd.has(hoja):
+		var info := {}
+		var json := hoja.get_basename() + "_hd.json"
+		var png := hoja.get_basename() + "_hd.png"
+		if FileAccess.file_exists(json) and ResourceLoader.exists(png):
+			var datos: Variant = JSON.parse_string(FileAccess.get_file_as_string(json))
+			var tex := load(png) as Texture2D
+			if datos is Dictionary and tex:
+				info = {"tex": tex, "factor": float((datos as Dictionary).get("factor", 2))}
+		_hd[hoja] = info
+	return _hd[hoja]
+
+
+## Cuadro HD de una referencia "hoja.png#x,y,w,h" (null si no hay hoja HD o está apagada).
+static func textura_hd(ref: String) -> Texture2D:
+	if not calidad_hd or not SpriteSheet.is_ref(ref):
+		return null
+	if _hd_cuadros.has(ref):
+		return _hd_cuadros[ref]
+	var hoja := ref.get_slice("#", 0)
+	var info := _info_hd(hoja)
+	var tex: Texture2D = null
+	if not info.is_empty():
+		var p := ref.get_slice("#", 1).split(",")
+		var f := float(info["factor"])
+		var at := AtlasTexture.new()
+		at.atlas = info["tex"]
+		at.region = Rect2(float(p[0]) * f, float(p[1]) * f, float(p[2]) * f, float(p[3]) * f)
+		tex = at
+	_hd_cuadros[ref] = tex
+	return tex
+
+
+## Desplazamiento de estabilización de un cuadro, en píxeles de la hoja normal.
+static func ajuste(ref: String) -> Vector2:
+	if not SpriteSheet.is_ref(ref):
+		return Vector2.ZERO
+	var hoja := ref.get_slice("#", 0)
+	if not _ajustes.has(hoja):
+		var tabla := {}
+		var json := hoja.get_basename() + "_ajustes.json"
+		if FileAccess.file_exists(json):
+			var datos: Variant = JSON.parse_string(FileAccess.get_file_as_string(json))
+			if datos is Dictionary:
+				var d: Dictionary = (datos as Dictionary).get("desfases", {})
+				for celda in d:
+					var v: Array = d[celda]
+					tabla[String(celda)] = Vector2(float(v[0]), float(v[1]))
+		_ajustes[hoja] = tabla
+	return (_ajustes[hoja] as Dictionary).get(ref.get_slice("#", 1), Vector2.ZERO)
+
+
 ## true si el luchador usa imágenes y su imagen "idle" se puede cargar.
 static func has_sprites(definition: Dictionary) -> bool:
 	if not definition.has("sprites"):
@@ -792,11 +866,16 @@ static func _sprite_available(sprites: Dictionary, key: String) -> bool:
 
 ## Ruta de la imagen que toca ahora. En las listas avanza un cuadro cada
 ## "sprite_frame_time" segundos (0.1 s si no se indica) y vuelve a empezar.
-static func _sprite_path(definition: Dictionary, key: String, elapsed: float) -> String:
+## Las secuencias "seq_<animación>" reparten sus cuadros a lo largo de la animación
+## (frame["progress"], de 0 a 1): el golpe empieza siempre por su primer cuadro.
+static func _sprite_path(definition: Dictionary, key: String, elapsed: float, frame: Dictionary = {}) -> String:
 	var value: Variant = definition["sprites"][key]
 	if not (value is Array):
 		return String(value)
 	var frames: Array = value
+	if key.begins_with(SEQUENCE_PREFIX) and frame.has("progress"):
+		var step := clampi(int(floorf(float(frame["progress"]) * frames.size())), 0, frames.size() - 1)
+		return String(frames[step])
 	var frame_times: Dictionary = definition.get("sprite_frame_time", {})
 	var frame_time := maxf(0.016, float(frame_times.get(key, 0.1)))
 	var index := posmod(int(floorf(elapsed / frame_time)), frames.size())
@@ -872,7 +951,9 @@ static func portrait_head_offset(definition: Dictionary) -> Vector2:
 	if not has_sprites(definition) or not definition.has("sprite_head"):
 		return Vector2.ZERO
 	var sprites: Dictionary = definition["sprites"]
-	var metrics := _sprite_metrics(definition, _texture(String(sprites["idle"])))
+	# "idle" puede ser una imagen o una lista de cuadros (animación): se mide el primero.
+	var idle: Variant = sprites["idle"]
+	var metrics := _sprite_metrics(definition, _texture(String(idle[0] if idle is Array else idle)))
 	var head: Vector2 = definition["sprite_head"]
 	var anchor: Vector2 = metrics[0]
 	return (head - anchor) * float(metrics[1]) - GENERIC_HEAD
@@ -894,7 +975,11 @@ static func _draw_sprite(ci: CanvasItem, base: Transform2D, x: float, foot: floa
 		pose = "ko"
 		key = "idle"
 		knockdown_pose = false
-	var tex := _texture(_sprite_path(definition, key, elapsed))
+	# Secuencia completa de la animación (seq_jab, seq_run...), si el luchador la tiene.
+	if pose != "ko" and not knockdown_pose and _sprite_available(sprites, SEQUENCE_PREFIX + anim_name):
+		key = SEQUENCE_PREFIX + anim_name
+	var ruta_tex := forced_sprite if forced_sprite != "" else _sprite_path(definition, key, elapsed, frame)
+	var tex := _texture(ruta_tex)
 	var metrics := _sprite_metrics(definition, tex, key)
 	# Si la imagen ya muestra el movimiento (puñetazo, patada, carrera…), el código
 	# solo lo acompaña un poco en vez de simularlo entero.
@@ -902,7 +987,11 @@ static func _draw_sprite(ci: CanvasItem, base: Transform2D, x: float, foot: floa
 	var anchor: Vector2 = metrics[0]
 	var upp: float = metrics[1]
 	var size := Vector2(tex.get_width(), tex.get_height()) * upp
-	var rect := Rect2(-anchor * upp, size)
+	var rect := Rect2((-anchor + ajuste(ruta_tex)) * upp, size)
+	# Versión HD de la hoja (tools/subir_calidad.gd): misma posición y tamaño, más definición.
+	var tex_dibujo := textura_hd(ruta_tex)
+	if tex_dibujo == null:
+		tex_dibujo = tex
 	var scale := float(definition["sprite_scale"])
 	var arm := int(_num(frame, "arm"))
 	var leg := int(_num(frame, "leg"))
@@ -1020,9 +1109,10 @@ static func _draw_sprite(ci: CanvasItem, base: Transform2D, x: float, foot: floa
 	# Estela eléctrica detrás al correr y al golpear.
 	if smear and (pose == "run" or pose == "smear" or pose == "impact" or pose == "special-launch"):
 		ci.draw_set_transform_matrix(xf * Transform2D(0.0, Vector2(-8.0, 0.0)))
-		ci.draw_texture_rect(tex, rect, false, Color(accent.r, accent.g, accent.b, 0.35 * alpha))
+		var rastro := silueta(accent, 0.35 * alpha) if siluetas else Color(accent.r, accent.g, accent.b, 0.35 * alpha)
+		ci.draw_texture_rect(tex_dibujo, rect, false, rastro)
 	ci.draw_set_transform_matrix(xf)
-	ci.draw_texture_rect(tex, rect, false, tint)
+	ci.draw_texture_rect(tex_dibujo, rect, false, tint)
 
 	if pose == "down" or pose == "ko":
 		return

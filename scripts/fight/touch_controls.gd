@@ -13,8 +13,8 @@ const BUTTONS := [
 	{"action": "p1_block", "label": "E", "pos": Vector2(245, 365), "radius": 30.0, "passby": true},
 	{"action": "p1_attack", "label": "PU", "pos": Vector2(700, 470), "radius": 40.0, "passby": false},
 	{"action": "p1_kick", "label": "PA", "pos": Vector2(800, 470), "radius": 40.0, "passby": false},
-	{"action": "p1_heavy", "label": "I", "pos": Vector2(640, 395), "radius": 32.0, "passby": false},
-	{"action": "p1_special", "label": "L", "pos": Vector2(890, 410), "radius": 38.0, "passby": false},
+	{"action": "p1_heavy", "label": "FU", "pos": Vector2(640, 395), "radius": 32.0, "passby": false},
+	{"action": "p1_special", "label": "TE", "pos": Vector2(890, 410), "radius": 38.0, "passby": false},
 	{"action": "p1_awaken", "label": "H", "pos": Vector2(880, 320), "radius": 32.0, "passby": false},
 	{"action": "pause", "label": "II", "pos": Vector2(480, 110), "radius": 22.0, "passby": false},
 ]

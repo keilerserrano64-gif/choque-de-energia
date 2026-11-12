@@ -1,0 +1,48 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/auto_anim_config.gd" id="1_0yl50"]
+
+[resource]
+script = ExtResource("1_0yl50")
+acciones = {
+"aterrizaje": {
+"duracion": 0.26,
+"estilo": "aterrizaje_pesado",
+"intensidad": 0.8
+},
+"bloqueo": {
+"duracion": 0.3,
+"estilo": "guardia",
+"intensidad": 1.0
+},
+"especial": {
+"duracion": 0.4,
+"estilo": "aparecer",
+"intensidad": 1.0
+},
+"golpe": {
+"duracion": 0.28,
+"estilo": "golpe_seco",
+"intensidad": 0.5
+},
+"golpe_recibido": {
+"duracion": 0.32,
+"estilo": "retroceso",
+"intensidad": 0.8
+},
+"patada": {
+"duracion": 0.32,
+"estilo": "patada_alta",
+"intensidad": 0.5
+},
+"salto": {
+"duracion": 0.3,
+"estilo": "salto_elastico",
+"intensidad": 0.8
+},
+"victoria": {
+"duracion": 0.5,
+"estilo": "destello",
+"intensidad": 0.6
+}
+}

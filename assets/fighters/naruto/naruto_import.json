@@ -1,0 +1,93 @@
+{
+  "sheet": "fuentes/naruto_hokage.png",
+  "options": {
+    "mode": "plain",
+    "gap": "1",
+    "crop": "0,0,3,3",
+    "lines": "20",
+    "connect": "4",
+    "split": true
+  },
+  "map": {
+    "idle": [
+      3,
+      4,
+      5,
+      6
+    ],
+    "stance": 81,
+    "walk": [
+      19,
+      20,
+      21,
+      22,
+      23,
+      24
+    ],
+    "run": 25,
+    "run_alt": 25,
+    "jump": 38,
+    "block": 41,
+    "jab_anticipate": 81,
+    "jab": 82,
+    "jab_recover": 84,
+    "light": 83,
+    "cross": 86,
+    "hook": 85,
+    "heavy": 89,
+    "heavy_impact": 88,
+    "uppercut": 88,
+    "throw": 97,
+    "finisher": 93,
+    "finisher_impact": 96,
+    "kick_low": 94,
+    "kick_mid": 95,
+    "kick_high": 96,
+    "kick_spin": 100,
+    "sweep": 103,
+    "air_punch": 109,
+    "air_kick": 112,
+    "hurt": [
+      49,
+      50
+    ],
+    "fall": 52,
+    "down": 57,
+    "charge": [
+      134,
+      135,
+      136,
+      137
+    ],
+    "special": [
+      138,
+      139,
+      140,
+      141
+    ],
+    "intro": [
+      67,
+      68,
+      69,
+      70
+    ],
+    "victory": [
+      71,
+      72,
+      73,
+      74
+    ],
+    "_frame_time": {
+      "idle": 0.15,
+      "walk": 0.08,
+      "hurt": 0.12,
+      "charge": 0.08,
+      "special": 0.07,
+      "intro": 0.18,
+      "victory": 0.18
+    }
+  },
+  "base": "kakashi",
+  "flip": false,
+  "name": "Naruto"
+}

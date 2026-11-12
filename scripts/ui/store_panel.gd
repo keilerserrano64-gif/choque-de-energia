@@ -37,7 +37,7 @@ func _ready() -> void:
 	_coins = UiKit.label("", 22, UiKit.GOLD, 6)
 	header.add_child(_coins)
 	box.add_child(header)
-	box.add_child(UiKit.label("Llena la barra de energía y pulsa L para despertar. Cada forma cuesta %d monedas." % Catalog.FORM_COST, 14, UiKit.MUTED))
+	box.add_child(UiKit.label("Llena la barra de energía y pulsa H para despertar. Cada forma cuesta %d monedas." % Catalog.FORM_COST, 14, UiKit.MUTED))
 
 	_grid = GridContainer.new()
 	_grid.columns = 4
@@ -69,13 +69,17 @@ func _make_card(fighter: Dictionary) -> Button:
 	portrait.position = Vector2(10, 8)
 	portrait.size = Vector2(70, 70)
 	card.add_child(portrait)
-	var name_label := UiKit.label(String(fighter["name"]).to_upper(), 18, UiKit.TEXT, 4)
-	name_label.position = Vector2(84, 14)
+	var name_label := UiKit.label(String(fighter["name"]).to_upper(), 14, UiKit.TEXT, 4)
+	name_label.name = "FighterName"
+	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	name_label.position = Vector2(84, 8)
+	name_label.size = Vector2(80, 36)
 	card.add_child(name_label)
 	var form := UiKit.label(String(fighter["awakening"]), 12, accent)
-	form.position = Vector2(84, 42)
-	form.size = Vector2(80, 36)
-	form.autowrap_mode = TextServer.AUTOWRAP_WORD
+	form.name = "AwakeningName"
+	form.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	form.position = Vector2(84, 48)
+	form.size = Vector2(80, 56)
 	card.add_child(form)
 	var status := UiKit.label("", 14, UiKit.GOLD, 4)
 	status.name = "Status"

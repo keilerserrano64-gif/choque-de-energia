@@ -1,0 +1,198 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://addons/auto_anim/ia/panel_ia.gd" id="1_panel"]
+[ext_resource type="Script" path="res://addons/auto_anim/ia/cliente_ia.gd" id="2_cliente"]
+
+[node name="IA" type="VBoxContainer"]
+offset_right = 320.0
+offset_bottom = 640.0
+script = ExtResource("1_panel")
+
+[node name="Ayuda" type="Label" parent="."]
+layout_mode = 2
+text = "Selecciona un Node2D, Polygon2D, Line2D, Sprite2D o Control, describe el movimiento y pulsa Generar. Sin selección se crea una estrella de prueba."
+autowrap_mode = 3
+
+[node name="FilaProveedor" type="HBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="FilaProveedor"]
+custom_minimum_size = Vector2(70, 0)
+layout_mode = 2
+text = "Cerebro"
+
+[node name="Proveedor" type="OptionButton" parent="FilaProveedor"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Quién traduce tu descripción a una animación"
+
+[node name="FilaModelo" type="HBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="FilaModelo"]
+custom_minimum_size = Vector2(70, 0)
+layout_mode = 2
+text = "Modelo"
+
+[node name="Modelo" type="LineEdit" parent="FilaModelo"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Vacío = el modelo por defecto. Claude: haiku, sonnet u opus. Ollama: llama3.2, qwen2.5..."
+placeholder_text = "por defecto"
+
+[node name="FilaNombre" type="HBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="FilaNombre"]
+custom_minimum_size = Vector2(70, 0)
+layout_mode = 2
+text = "Nombre"
+
+[node name="Nombre" type="LineEdit" parent="FilaNombre"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Nombre de la animación. Si ya existe se reemplaza (Ctrl+Z la recupera)."
+text = "salto"
+placeholder_text = "salto, ataque, entrada..."
+
+[node name="LabelDescripcion" type="Label" parent="."]
+layout_mode = 2
+text = "Descripción"
+
+[node name="Descripcion" type="TextEdit" parent="."]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 90)
+layout_mode = 2
+placeholder_text = "salto alto con giro de 360 grados y caída suave"
+wrap_mode = 1
+
+[node name="FilaDuracion" type="HBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="FilaDuracion"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Duración (s)"
+
+[node name="Duracion" type="SpinBox" parent="FilaDuracion"]
+unique_name_in_owner = true
+layout_mode = 2
+min_value = 0.1
+max_value = 30.0
+step = 0.05
+value = 1.0
+
+[node name="Relativo" type="CheckBox" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "Los movimientos parten de donde está el nodo ahora (recomendado)"
+button_pressed = true
+text = "Relativo a la posición actual"
+
+[node name="Bucle" type="CheckBox" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "Repetir siempre, aunque la IA diga que no"
+text = "Forzar bucle"
+
+[node name="Generar" type="Button" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Generar con IA"
+
+[node name="FilaBotones" type="HBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="Reproducir" type="Button" parent="FilaBotones"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Reproduce la animación en el nodo seleccionado (otra vez = parar)"
+text = "Reproducir"
+
+[node name="AplicarJson" type="Button" parent="FilaBotones"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Construye la animación con el JSON de abajo (puedes retocarlo a mano)"
+text = "Aplicar JSON"
+
+[node name="Estado" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Listo."
+autowrap_mode = 3
+
+[node name="LabelJson" type="Label" parent="."]
+layout_mode = 2
+text = "Receta (JSON que devolvió la IA)"
+
+[node name="Json" type="TextEdit" parent="."]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 120)
+layout_mode = 2
+placeholder_text = "{\"duracion\": 1.0, \"loop\": false, \"pistas\": [...]}"
+
+[node name="VerAjustes" type="CheckButton" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Ajustes"
+
+[node name="Ajustes" type="VBoxContainer" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+
+[node name="FilaClaude" type="HBoxContainer" parent="Ajustes"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Ajustes/FilaClaude"]
+custom_minimum_size = Vector2(70, 0)
+layout_mode = 2
+text = "claude"
+
+[node name="RutaClaude" type="LineEdit" parent="Ajustes/FilaClaude"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Programa de Claude Code (claude o su ruta completa)"
+text = "claude"
+
+[node name="FilaCodex" type="HBoxContainer" parent="Ajustes"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Ajustes/FilaCodex"]
+custom_minimum_size = Vector2(70, 0)
+layout_mode = 2
+text = "codex"
+
+[node name="RutaCodex" type="LineEdit" parent="Ajustes/FilaCodex"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Programa de Codex (codex o su ruta completa)"
+text = "codex"
+
+[node name="FilaOllama" type="HBoxContainer" parent="Ajustes"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Ajustes/FilaOllama"]
+custom_minimum_size = Vector2(70, 0)
+layout_mode = 2
+text = "Ollama"
+
+[node name="UrlOllama" type="LineEdit" parent="Ajustes/FilaOllama"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "http://localhost:11434"
+
+[node name="Cliente" type="Node" parent="."]
+unique_name_in_owner = true
+script = ExtResource("2_cliente")
+
+[node name="Http" type="HTTPRequest" parent="Cliente"]
+timeout = 180.0

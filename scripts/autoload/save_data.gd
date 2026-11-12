@@ -4,17 +4,20 @@ extends Node
 
 signal changed
 
+const MENU_ITEMS := ["arcade", "versus", "cpu", "training", "options", "store", "quit"]
+
 const PATH := "user://choque_save.json"
 
+var last_menu_item := ""
 var coins := 0
 var unlocked_forms: Array[String] = []
 var music_volume := 60
 var effects_volume := 80
-var voice_volume := 85  ## voces de los luchadores
 var announcer := true
 var skip_intro := false
 var fullscreen := false
 var show_hitboxes := true
+var calidad_hd := true  ## luchadores en alta calidad (hojas _hd generadas por calidad_luchador.gd)
 var screen_effects := true  ## shaders de pantalla en los golpes pesados (ondas, destellos)
 var arcade_clears := 0
 
@@ -33,6 +36,8 @@ func load_data() -> void:
 		push_warning("No se pudo leer el progreso guardado. Se usará una partida nueva.")
 		return
 	var data: Dictionary = parsed
+	var menu_item = data.get("last_menu_item", "")
+	last_menu_item = menu_item if menu_item is String and MENU_ITEMS.has(menu_item) else ""
 	coins = clampi(int(data.get("coins", 0)), 0, 1000000)
 	unlocked_forms.clear()
 	var forms = data.get("unlocked_forms", [])
@@ -43,12 +48,13 @@ func load_data() -> void:
 				unlocked_forms.append(fighter_id)
 	music_volume = clampi(int(data.get("music_volume", music_volume)), 0, 100)
 	effects_volume = clampi(int(data.get("effects_volume", effects_volume)), 0, 100)
-	voice_volume = clampi(int(data.get("voice_volume", voice_volume)), 0, 100)
 	announcer = bool(data.get("announcer", announcer))
 	skip_intro = bool(data.get("skip_intro", skip_intro))
 	fullscreen = bool(data.get("fullscreen", fullscreen))
 	show_hitboxes = bool(data.get("show_hitboxes", show_hitboxes))
 	screen_effects = bool(data.get("screen_effects", screen_effects))
+	calidad_hd = bool(data.get("calidad_hd", calidad_hd))
+	FighterPainter.calidad_hd = calidad_hd
 	arcade_clears = maxi(0, int(data.get("arcade_clears", 0)))
 
 
@@ -58,19 +64,28 @@ func save() -> void:
 		push_warning("No se pudo guardar el progreso: %s" % error_string(FileAccess.get_open_error()))
 		return
 	file.store_string(JSON.stringify({
+		"last_menu_item": last_menu_item,
 		"coins": coins,
 		"unlocked_forms": unlocked_forms,
 		"music_volume": music_volume,
 		"effects_volume": effects_volume,
-		"voice_volume": voice_volume,
 		"announcer": announcer,
 		"skip_intro": skip_intro,
 		"fullscreen": fullscreen,
 		"show_hitboxes": show_hitboxes,
 		"screen_effects": screen_effects,
+		"calidad_hd": calidad_hd,
 		"arcade_clears": arcade_clears,
 	}, "\t"))
 	changed.emit()
+
+
+## Recuerda únicamente opciones conocidas del menú.
+func remember_menu_item(id: String) -> void:
+	if not MENU_ITEMS.has(id) or last_menu_item == id:
+		return
+	last_menu_item = id
+	save()
 
 
 func is_unlocked(fighter_id: String) -> bool:

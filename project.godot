@@ -15,9 +15,9 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 [application]
 
 config/name="Choque de Energía"
-config/description="Juego de pelea 2D en pixel art con ocho luchadores, VS local y arcade."
+config/description="Juego de pelea 2D en pixel art con Kakashi, Naruto, Ban, Todo, Adam y Madara, VS local y arcade."
 config/version="3.0.0"
-run/main_scene="res://scenes/main_menu.tscn"
+run/main_scene="res://scenes/title_screen.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 boot_splash/bg_color=Color(0.047, 0.059, 0.09, 1)
 config/icon="res://icon.svg"
@@ -37,6 +37,10 @@ window/size/window_width_override=1280
 window/size/window_height_override=720
 window/stretch/mode="canvas_items"
 window/handheld/orientation=4
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/auto_anim/plugin.cfg")
 
 [gui]
 

@@ -19,6 +19,13 @@ var _sequence := false
 var _zoom := 1.0
 var _vs_shown := false
 var _vs_layer: CanvasLayer
+## Intro cinemática del luchador (p. ej. Madara Edo): una vez por combate, antes del asalto 1.
+var _cinematic_shown := false
+var _cinematic: Node
+## Mientras la intro dirige la cámara, _update_camera() no la toca.
+var cinematic_camera := false
+## Técnica definitiva cinemática en curso (p. ej. el Tengai Shinsei de Madara Edo).
+var _ultimate: Node
 
 
 func _ready() -> void:
@@ -28,6 +35,8 @@ func _ready() -> void:
 	arena.sim = sim
 	arena.show_hitboxes = Router.mode == "training" and SaveData.show_hitboxes
 	sim.round_finished.connect(_on_round_finished)
+	if sim.has_signal("ultimate_requested"):
+		sim.connect("ultimate_requested", _on_ultimate_requested)
 	pause_menu.resume_requested.connect(_on_resume)
 	pause_menu.restart_requested.connect(func() -> void: Router.goto("fight"))
 	pause_menu.quit_requested.connect(func() -> void: Router.goto("menu"))
@@ -68,6 +77,9 @@ func _round_intro() -> void:
 		_vs_layer.add_child(splash)
 		await splash.play(sim, SaveData.skip_intro)
 		_vs_layer.queue_free()
+	if not _cinematic_shown and Router.mode != "training" and not SaveData.skip_intro:
+		_cinematic_shown = true
+		await _play_cinematic_intro()
 	if Router.mode == "training":
 		hud.announce("ENTRENAMIENTO", UiKit.ACCENT, 0.6)
 		await get_tree().create_timer(0.7).timeout
@@ -76,10 +88,6 @@ func _round_intro() -> void:
 		var title := "RONDA FINAL" if sim.round_number >= 3 else "RONDA %d" % sim.round_number
 		hud.announce(title, Color.WHITE, 0.35 if short else 0.75)
 		Sfx.play("announce")
-		# Frase de presentación: el J1 en la primera ronda y su rival en la segunda.
-		if not short and sim.round_number <= 2:
-			var speaker := sim.player if sim.round_number == 1 else sim.enemy
-			Sfx.play_voice(speaker.index, speaker.id, "intro", 0.15)
 		await get_tree().create_timer(0.55 if short else 1.1).timeout
 		hud.announce("¡PELEA!", UiKit.GOLD, 0.35)
 		Sfx.play("confirm")
@@ -95,15 +103,67 @@ func _physics_process(delta: float) -> void:
 		sim.update(delta)
 		for kind in sim.consume_audio_events():
 			var key := String(kind)
-			if key.begins_with("voice|"):
-				Sfx.play_voice_event(key)
-			else:
-				Sfx.play(key, 0.07 if key.contains("hit") or key == "block" else 0.0)
+			Sfx.play(key, 0.07 if key.contains("hit") or key == "block" else 0.0)
 		_play_vfx_events()
 		for callout in sim.consume_callouts():
 			var c: Dictionary = callout
 			hud.announce(String(c["text"]), Color(String(c["color"])), 0.3)
-	_update_camera(delta)
+	if not cinematic_camera:
+		_update_camera(delta)
+
+
+## La simulación pidió un definitivo (H con el despertar activo): se congela el combate
+## (_running = false: nadie se mueve, no corre el reloj) y se reproduce su escena.
+func _on_ultimate_requested(index: int) -> void:
+	if _ultimate != null:
+		return
+	var Ultimates := preload("res://scripts/fight/ultimates/ultimates.gd")
+	var path: String = Ultimates.scene_for(sim.fighter_by_index(index).definition)
+	var packed := load(path) as PackedScene if path != "" else null
+	if packed == null:
+		sim.call("end_ultimate")
+		return
+	_running = false
+	_sequence = true
+	_ultimate = packed.instantiate()
+	add_child(_ultimate)
+	await _ultimate.play({"sim": sim, "arena": arena, "camera": camera, "fight": self,
+		"screen_fx": screen_fx, "index": index, "ocultar": [hud, get_node_or_null("TouchLayer/Touch")]})
+	if is_instance_valid(_ultimate):
+		_ultimate.queue_free()
+	_ultimate = null
+	sim.call("end_ultimate")
+	_zoom = 1.0
+	controls.clear_pressed()
+	_sequence = false
+	_running = true
+
+
+## Reproduce la intro cinemática si alguno de los luchadores tiene una (ver cinematic_intros.gd).
+## Los controles siguen bloqueados porque la simulación está en "ready" y _running es false.
+func _play_cinematic_intro() -> void:
+	var CinematicIntros := preload("res://scripts/fight/intros/cinematic_intros.gd")
+	var choice: Dictionary = CinematicIntros.pick(sim.player.id, sim.enemy.id, sim.player.index, sim.enemy.index)
+	if choice.is_empty():
+		return
+	var packed := load(String(choice["scene"])) as PackedScene
+	if packed == null:
+		push_warning("No se pudo cargar la intro " + String(choice["scene"]))
+		return
+	_cinematic = packed.instantiate()
+	if not _cinematic.has_method("play"):
+		_cinematic.queue_free()
+		_cinematic = null
+		return
+	add_child(_cinematic)
+	await _cinematic.play({"sim": sim, "arena": arena, "camera": camera, "fight": self,
+		"screen_fx": screen_fx, "index": int(choice["index"]),
+		"ocultar": [hud, get_node_or_null("TouchLayer/Touch")]})
+	if is_instance_valid(_cinematic):
+		_cinematic.queue_free()
+	_cinematic = null
+	_zoom = 1.0
+	controls.clear_pressed()
 
 
 ## Pasa los golpes pesados, despertares y K.O. de la simulación al shader de pantalla.
@@ -237,7 +297,7 @@ func _show_result() -> void:
 				else:
 					SaveData.arcade_clears += 1
 					SaveData.add_coins(100)
-					result_panel.show_result("¡ARCADE COMPLETADO!", "%s venció a los siete rivales" % p1_name,
+					result_panel.show_result("¡ARCADE COMPLETADO!", "%s venció a los %d rivales" % [p1_name, Router.arcade_total()],
 						"+%d monedas del combate y +100 de premio · Arcades completados: %d" % [sim.reward, SaveData.arcade_clears],
 						winner_id, [["JUGAR OTRA VEZ", change], ["MENÚ PRINCIPAL", menu]])
 			else:

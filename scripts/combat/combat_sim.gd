@@ -9,6 +9,7 @@ extends RefCounted
 
 signal round_finished(result: String)
 signal match_finished
+signal ultimate_requested(index: int)
 
 const WIDTH := 480.0
 const FLOOR := 204.0
@@ -16,6 +17,13 @@ const ARENA_LEFT := 22.0
 const ARENA_RIGHT := WIDTH - 22.0
 const MAX_HEALTH := 100
 const DAMAGE_SCALE := 0.75
+## Combo nuevo, defensa 1 y sin guardia: 12 + 15 + 21 = 48/100 de vida.
+## hit() aplica DAMAGE_SCALE; la proration empieza en el cuarto golpe.
+const ULTIMATE_HITS := {
+	"susanoo": {"damage": 16, "launch_y": -120.0},
+	"meteoro1": {"damage": 20, "launch_y": -120.0},
+	"meteoro2": {"damage": 28, "launch_y": -120.0},
+}
 const GRAVITY := 960.0
 const BODY_GAP := 20.0
 const ROUND_DURATION := 99.0
@@ -38,8 +46,8 @@ const MODES := ["cpu", "versus", "training"]
 ## y clear_pressed(). En el juego es PlayerInput; en las pruebas, uno falso.
 var input = null
 var mode := "cpu"
-var player_id := "brasa"
-var enemy_id := "onix"
+var player_id := "kakashi"
+var enemy_id := "kakashi"
 var stage_id := "brumaria"
 var difficulty_id := "challenging"
 var player: FighterState
@@ -51,6 +59,9 @@ var state := "ready"  ## ready | playing | round-finished | finished
 var elapsed := 0.0
 var screen_shake := 0.0
 var hit_stop_frames := 0.0
+var ultimate_active := false
+var ultimate_owner := -1
+var _ultimate_done: Dictionary = {}
 var armor_flash := 0.0
 var last_action := ""
 var last_action_time := 0.0
@@ -66,7 +77,7 @@ var audio_events: Array[String] = []
 ## Fight los recoge con consume_vfx_events(); aquí solo se anotan, sin depender de nodos.
 var vfx_events: Array = []
 ## Acciones para AnimadorProcedural: {"i": índice del luchador, "tipo": "golpe"|"patada"|
-## "golpe_recibido"|"bloqueo"|"dash"|"ko"|"victoria"|"reiniciar", ...}. Las recoge ArenaView.
+## "golpe_recibido"|"bloqueo"|"dash"|"especial"|"ko"|"victoria"|"reiniciar", ...}. Las recoge ArenaView.
 var anim_events: Array = []
 const MAX_ANIM_EVENTS := 64
 var training_idle := 0.0
@@ -127,6 +138,7 @@ func restart() -> void:
 
 
 func reset_round() -> void:
+	end_ultimate()
 	var player_awakening := player.awakening_available if player else false
 	var enemy_awakening := enemy.awakening_available if enemy else false
 	initialize_fighters()
@@ -170,22 +182,6 @@ func consume_audio_events() -> Array:
 
 func queue_audio(kind: String) -> void:
 	audio_events.append(kind)
-
-
-## Voz del luchador: anota "voice|<lado>|<luchador>|<frase>|<retraso>" para Sfx.
-## Los gritos de golpe y de dolor tienen probabilidad y un pequeño enfriamiento
-## para que no hable en cada cuadro; técnicas, despertar, K.O. y victoria siempre suenan.
-const VOICE_ALWAYS := ["special", "awaken", "ko", "victory", "intro", "heavy"]
-
-
-func queue_voice(f: FighterState, line: String, chance: float = 1.0, delay: float = 0.0) -> void:
-	if f == null:
-		return
-	var important := VOICE_ALWAYS.has(line)
-	if not important and (f.voice_cooldown > 0.0 or rng.randf() > chance):
-		return
-	f.voice_cooldown = 0.5 if not important else 0.35
-	audio_events.append("voice|%d|%s|%s|%.2f" % [f.index, f.id, line, delay])
 
 
 func consume_callouts() -> Array:
@@ -248,9 +244,6 @@ func finish_round(result: String) -> void:
 		var f: FighterState = fighter
 		if f.health <= 0:
 			queue_anim(f, "ko")
-			queue_voice(f, "ko", 1.0)
-	if result == "player" or result == "enemy":
-		queue_voice(player if result == "player" else enemy, "victory", 1.0, 1.4)
 	if result == "player":
 		queue_anim(player, "victoria")
 	elif result == "enemy":
@@ -263,7 +256,7 @@ func finish_round(result: String) -> void:
 # --- Bucle principal --------------------------------------------------------
 
 func update(dt: float) -> void:
-	if hit_stop_frames > 0.0:
+	if hit_stop_frames > 0.0 and not ultimate_active:
 		hit_stop_frames = maxf(0.0, hit_stop_frames - dt * 60.0)
 		_buffer_frozen_presses()
 		_clear_input()
@@ -276,6 +269,10 @@ func update(dt: float) -> void:
 	armor_flash = maxf(0.0, armor_flash - dt)
 	last_action_time = maxf(0.0, last_action_time - dt)
 
+	if ultimate_active:
+		_clear_input()
+		return
+
 	if state != "playing":
 		_clear_input()
 		return
@@ -285,7 +282,13 @@ func update(dt: float) -> void:
 	_update_fighter_timers(player, dt)
 	_update_fighter_timers(enemy, dt)
 	_move_controlled_fighter(player, enemy, 0, dt)
+	if ultimate_active:
+		_clear_input()
+		return
 	_move_enemy(dt)
+	if ultimate_active:
+		_clear_input()
+		return
 	_face_opponents()
 	_update_attacks(dt)
 	_update_specials(dt)
@@ -354,7 +357,6 @@ func _update_fighter_timers(f: FighterState, dt: float) -> void:
 	f.decoy_time = maxf(0.0, f.decoy_time - dt)
 	f.combo_timer = maxf(0.0, f.combo_timer - dt)
 	f.combo_display = maxf(0.0, f.combo_display - dt)
-	f.voice_cooldown = maxf(0.0, f.voice_cooldown - dt)
 	var foe := opponent_of(f)
 	if f.combo_hits > 0 and foe.hurt_time <= 0.0 and not foe.knocked_down and f.combo_display <= 0.0:
 		f.combo_hits = 0
@@ -417,21 +419,20 @@ func _move_controlled_fighter(f: FighterState, target: FighterState, index: int,
 
 	if _consume_press(index, "jump"):
 		jump(f)
-	# Comandos: ↓+J uppercut antiaéreo, ↓+K barrida, →+I agarre (cerca del rival).
-	var crouching := _is_down(index, "down")
-	var toward := (right and f.facing > 0) or (left and f.facing < 0)
-	if _consume_press(index, "attack"):
-		request_attack(f, "low_attack" if crouching and f.grounded else "attack")
-	if _consume_press(index, "kick"):
-		request_attack(f, "sweep" if crouching and f.grounded else "kick")
-	if _consume_press(index, "heavy"):
-		request_attack(f, "throw" if toward and can_throw(f, target) else "heavy")
+	# Comandos: ↓+I antiaéreo, ↓+J barrida, ↓+L patada fuerte, →+L agarre.
+	for action in ["attack", "kick", "heavy"]:
+		if _consume_press(index, action):
+			request_attack(f, _controlled_attack(f, index, action))
 	if _consume_press(index, "special"):
 		# Atrás + técnica: algunas técnicas cambian (Volt esquiva hacia atrás).
 		f.special_back = (left and f.facing > 0) or (right and f.facing < 0)
 		use_technique(f, target)
 	if _consume_press(index, "awaken"):
-		awaken(f, f.awakening_available)
+		if f.awakening_time > 0.0 and can_ultimate(f):
+			request_ultimate(f)
+			return
+		else:
+			awaken(f, f.awakening_available)
 
 	_apply_knockback(f, dt)
 	_apply_gravity(f, dt)
@@ -504,6 +505,9 @@ func _move_enemy(dt: float) -> void:
 	if f.special_charge > 0.0 or f.ai_decision > 0.0:
 		return
 	f.ai_decision = (0.32 + rng.randf() * 0.38) * f.reaction_multiplier
+	if f.awakening_time > 0.0 and absolute_distance < 260.0 and can_ultimate(f) and rng.randf() < 0.35:
+		request_ultimate(f)
+		return
 	if f.health <= 34 and f.awakening_time <= 0.0 and f.meter >= 100.0:
 		awaken(f, f.awakening_available)
 	if absolute_distance < 100.0 and f.grounded:
@@ -516,7 +520,7 @@ func _move_enemy(dt: float) -> void:
 		f.ai_jump_timer = 1.4 + rng.randf() * 1.3
 
 
-## La CPU elige un combo entero (puños, patadas o mezcla que remata con I) y lo
+## La CPU elige un combo entero (puños, patadas o mezcla que remata con L) y lo
 ## ejecuta golpe a golpe. En Desafío y Experto confirma: si el primer golpe no entra
 ## (bloqueado o esquivado) abandona el resto para no quedar vendida.
 func _plan_ai_combo(f: FighterState, distance: float) -> void:
@@ -538,6 +542,11 @@ func _plan_ai_combo(f: FighterState, distance: float) -> void:
 		plans.append(["attack", "attack", "kick", "kick"])
 		plans.append(["sweep"])
 		plans.append(["attack", "attack", "sweep"])
+		plans.append(["heavy"])
+		plans.append(["heavy_kick"])
+	# Las técnicas también son una opción cerca, aunque quepa un combo normal.
+	if f.special_cooldown <= 0.0 and (f.id != "luma" or f.health < 76):
+		plans.append(["special"])
 	var plan: Array = plans[rng.randi() % plans.size()]
 	# En el nivel más fácil la CPU suele quedarse a medias.
 	if f.difficulty < 1.0 and plan.size() > 2 and rng.randf() < 0.5:
@@ -563,7 +572,7 @@ func _ai_reactions(f: FighterState, target: FighterState, distance: float) -> bo
 			return true
 		return false
 	var smart := f.difficulty >= 1.0
-	if smart and f.id == "volt" and f.special_cooldown <= 0.0 and target.has_pending_attack \
+	if smart and f.volt_kit() and f.special_cooldown <= 0.0 and target.has_pending_attack \
 			and target.attack_windup > 0.04 and distance < 90.0 and rng.randf() < 0.3:
 		f.special_back = true
 		use_technique(f, target)
@@ -590,6 +599,10 @@ func _run_ai_plan(f: FighterState, target: FighterState) -> bool:
 		f.ai_plan.clear()  # el golpe anterior no entró: no sigue el combo
 		return false
 	var action := String(f.ai_plan.pop_front())
+	if action == "special":
+		f.special_back = false
+		use_technique(f, target)
+		return true
 	if action == "throw" and not can_throw(f, target):
 		action = "attack"
 	request_attack(f, action)
@@ -599,7 +612,7 @@ func _run_ai_plan(f: FighterState, target: FighterState) -> bool:
 func move_speed(f: FighterState) -> float:
 	var boost := 1.0
 	if f.awakening_time > 0.0:
-		boost = 1.42 if f.id == "volt" else 1.28
+		boost = 1.42 if f.volt_kit() else 1.28
 	return float(f.definition["speed"]) * 0.46 * boost * f.speed_multiplier
 
 
@@ -679,23 +692,23 @@ func _apply_gravity(f: FighterState, dt: float) -> void:
 
 # --- Golpes -----------------------------------------------------------------
 
-## Golpe J: cadena de puños (jab → directo → gancho → uppercut).
+## Golpe I: cadena de puños (jab → directo → gancho → uppercut).
 func melee(attacker: FighterState, _defender: FighterState = null) -> void:
 	request_attack(attacker, "attack")
 
 
-## Golpe K: cadena de patadas (baja → media → alta → giratoria).
+## Golpe J: cadena de patadas (baja → media → alta → giratoria).
 func kick(attacker: FighterState, _defender: FighterState = null) -> void:
 	request_attack(attacker, "kick")
 
 
-## Golpe I: cierra la cadena con una rama (lanzador, remate cruzado) o, sin
+## Golpe L: cierra la cadena con una rama (lanzador, remate cruzado) o, sin
 ## cadena abierta, es el golpe fuerte suelto.
 func heavy_attack(attacker: FighterState, _defender: FighterState = null) -> void:
 	request_attack(attacker, "heavy")
 
 
-## Punto de entrada de los golpes (J = "attack", K = "kick", I = "heavy").
+## Punto de entrada de los golpes (I = "attack", J = "kick", L = "heavy").
 ## Si el luchador aún está en mitad de otro golpe, la pulsación se guarda
 ## (buffer de entrada) y sale sola en cuanto el golpe se pueda cancelar.
 func request_attack(f: FighterState, input: String) -> void:
@@ -737,6 +750,9 @@ func _start_attack(f: FighterState, input: String) -> void:
 				_command_strike(f, "throw")
 				return
 			input = "heavy"
+		"heavy_kick":
+			_standalone_heavy(f, true)
+			return
 	if input == "heavy":
 		var chain_step := f.attack_index if f.combo_timer > 0.0 else 0
 		var branch := ComboData.branch_for(f.definition, chain_step)
@@ -748,8 +764,25 @@ func _start_attack(f: FighterState, input: String) -> void:
 		_chain_attack(f, "kick" if input == "kick" else "punch")
 
 
-## Durante la pausa de impacto (hit stop) el combate está congelado. Antes se
-## perdían las pulsaciones hechas en esos cuadros; ahora J e I van al buffer.
+## Resuelve los modificadores al pulsar, también durante la pausa de impacto.
+## El buffer conserva el comando completo aunque luego se suelte la dirección.
+func _controlled_attack(f: FighterState, index: int, action: String) -> String:
+	var crouching := f.grounded and _is_down(index, "down")
+	match action:
+		"attack":
+			return "low_attack" if crouching else "attack"
+		"kick":
+			return "sweep" if crouching else "kick"
+		"heavy":
+			if crouching:
+				return "heavy_kick"
+			var toward := _is_down(index, "right") if f.facing > 0 else _is_down(index, "left")
+			if toward and can_throw(f, opponent_of(f)):
+				return "throw"
+	return action
+
+
+## Durante hit-stop se guardan los mismos comandos que durante un golpe normal.
 func _buffer_frozen_presses() -> void:
 	if state != "playing":
 		return
@@ -758,7 +791,7 @@ func _buffer_frozen_presses() -> void:
 		var f := fighter_by_index(index)
 		for action in ["attack", "kick", "heavy"]:
 			if _consume_press(index, action):
-				f.buffered_input = action
+				f.buffered_input = _controlled_attack(f, index, action)
 				f.buffer_time = ComboData.BUFFER_TIME
 
 
@@ -806,8 +839,6 @@ func _chain_attack(attacker: FighterState, kind: String = "punch") -> void:
 	if absf(target.x - attacker.x) > minimum_fighter_distance(attacker, target) + 4.0:
 		attacker.knockback_velocity = attacker.facing * float(strike.get("lunge", 60.0))
 	queue_anim(attacker, "patada" if kind == "kick" else "golpe")
-	var finisher: bool = strike.get("finisher", false)
-	queue_voice(attacker, "heavy" if finisher else kind, 1.0 if finisher else (0.3 if hit_index == 1 else 0.5))
 
 
 ## Golpe de comando (barrida, uppercut antiaéreo, ataques aéreos, agarre).
@@ -831,9 +862,10 @@ func _command_strike(attacker: FighterState, animation_name: String) -> void:
 	var target := opponent_of(attacker)
 	if attacker.grounded and strike.has("lunge") and absf(target.x - attacker.x) > minimum_fighter_distance(attacker, target) + 4.0:
 		attacker.knockback_velocity = attacker.facing * float(strike["lunge"])
-	queue_anim(attacker, "patada" if strike.get("kind", "") == "kick" else "golpe")
-	var important := animation_name == "throw" or animation_name == "uppercut" or animation_name == "sweep"
-	queue_voice(attacker, "heavy" if important else String(strike.get("kind", "punch")), 1.0 if important else 0.5)
+	var base := "patada" if strike.get("kind", "") == "kick" else "golpe"
+	var accion := String({"sweep": "barrida", "uppercut": "antiaereo",
+		"air_punch": "aereo", "air_kick": "aereo", "throw": "agarre"}.get(animation_name, base))
+	queue_anim(attacker, accion, {"base": base})
 
 
 ## El agarre solo funciona pegado al rival, los dos en el suelo y con el rival libre.
@@ -842,9 +874,12 @@ func can_throw(f: FighterState, target: FighterState) -> bool:
 		and target.hurt_time <= 0.0 and absf(target.x - f.x) <= minimum_fighter_distance(f, target) + ComboData.THROW_RANGE
 
 
-## I en mitad de una cadena: la remata con la rama que toque (ComboData.BRANCHES).
+## L en mitad de una cadena: remata con la rama y el tipo de la cadena abierta.
 func _branch_finisher(attacker: FighterState, chain_step: int, branch: Dictionary) -> void:
-	var animation_name := "kick" if attacker.id == "brasa" else "finisher"
+	var is_kick := attacker.chain_kind == "kick"
+	var animation_name := "finisher" if is_kick else "heavy"
+	if attacker.id == "brasa":
+		animation_name = "kick" if is_kick else "strong"
 	var animation := FighterAnimations.get_animation(attacker.id, animation_name)
 	attacker.attack_cooldown = float(attacker.stat("attack_cooldown", 0.3)) * 1.5
 	attacker.attack_windup = FighterAnimations.first_hitbox_frame(animation) / 60.0
@@ -858,15 +893,17 @@ func _branch_finisher(attacker: FighterState, chain_step: int, branch: Dictionar
 	attacker.pending_strike = ""
 	attacker.attack_index = 0
 	attacker.combo_timer = 0.0
-	queue_anim(attacker, "patada")
-	queue_voice(attacker, "heavy", 1.0)
+	var base := "patada" if is_kick else "golpe"
+	queue_anim(attacker, base, {"base": base})
 
 
-## Golpe fuerte (tecla I sin cadena): un solo golpe con la fuerza y el empuje del
+## Golpe fuerte (L; ↓+L para patada): un solo golpe con la fuerza y el empuje del
 ## remate del combo, pero más lento de recuperar y sin encadenar. Reinicia el combo.
-func _standalone_heavy(attacker: FighterState) -> void:
+func _standalone_heavy(attacker: FighterState, is_kick: bool = false) -> void:
 	var combo_length := int(attacker.definition["combo_length"])
-	var animation_name := "kick" if attacker.id == "brasa" else "finisher"
+	var animation_name := "finisher" if is_kick else "heavy"
+	if attacker.id == "brasa":
+		animation_name = "kick" if is_kick else "strong"
 	var animation := FighterAnimations.get_animation(attacker.id, animation_name)
 	attacker.attack_cooldown = maxf(HEAVY_COOLDOWN, float(attacker.stat("attack_cooldown", 0.3)) * 2.0)
 	attacker.attack_windup = FighterAnimations.first_hitbox_frame(animation) / 60.0
@@ -880,8 +917,9 @@ func _standalone_heavy(attacker: FighterState) -> void:
 	attacker.pending_strike = ""
 	attacker.attack_index = 0
 	attacker.combo_timer = 0.0
-	queue_anim(attacker, "patada")
-	queue_voice(attacker, "heavy", 0.7)
+	attacker.chain_kind = "kick" if is_kick else "punch"
+	var base := "patada" if is_kick else "golpe"
+	queue_anim(attacker, base, {"base": base})
 
 
 func _update_attacks(dt: float) -> void:
@@ -1010,6 +1048,10 @@ func _update_attacks(dt: float) -> void:
 		var counter_text := "¡CONTRAATAQUE! · " if _last_hit_counter else ""
 		if is_heavy:
 			last_action = "¡GOLPE FUERTE!"
+			if strike_kind == "kick":
+				# Algunos luchadores tienen un ataque propio en vez de patada (Itachi: espada).
+				var own := String(a.definition.get("heavy_kick_name", ""))
+				last_action = "¡%s!" % own.to_upper() if own != "" else "¡PATADA FUERTE!"
 			last_action_time = 0.6
 			continue
 		a.combo = hit_index
@@ -1073,7 +1115,7 @@ func use_technique(attacker: FighterState, _defender: FighterState = null) -> vo
 	attacker.attack_pose = 0.26
 	attacker.attack_animation = ""
 	attacker.meter = maxf(0.0, attacker.meter - (12.0 if attacker.awakening_time > 0.0 else 0.0))
-	var move := "arc-lunge" if attacker.id == "volt" and attacker.awakening_time > 0.0 else String(attacker.definition["special"])
+	var move := "arc-lunge" if attacker.volt_kit() and attacker.awakening_time > 0.0 else String(attacker.definition["special"])
 	if move != "volt-step":
 		attacker.special_back = false
 	attacker.special_charge = special_charge_duration(move)
@@ -1136,6 +1178,7 @@ func _update_specials(dt: float) -> void:
 			continue
 		f.pending_special = ""
 		f.special_pose_time = FighterAnimations.duration(FighterAnimations.get_animation(f.id, "special")) / 60.0
+		queue_anim(f, "especial")
 		_release_special(f, target, move, accent)
 
 
@@ -1152,7 +1195,7 @@ func _release_special(f: FighterState, target: FighterState, move: String, accen
 				hit(target, f.facing, roundi(25.0 * f.damage_multiplier), {"knockback": 430.0, "hit_stop": 10.0, "white_flash": true, "sound": "heavy_hit"})
 				burst(target.x, FLOOR - 38.0 + target.y, "#ffffff", 10)
 			screen_shake = maxf(screen_shake, 7.0)
-			last_action = "¡HILO SOLAR!"
+			last_action = "¡%s!" % String(f.definition.get("technique", "Hilo solar")).to_upper()
 			last_action_time = 0.9
 		"shard-fan":
 			var shard_speeds := [174.0, 218.0, 262.0]
@@ -1183,7 +1226,8 @@ func _release_special(f: FighterState, target: FighterState, move: String, accen
 				burst(target.x, FLOOR - 39.0 + target.y, "#eaffff", 12)
 				add_effect({"type": "volt-impact", "x": target.x, "y": FLOOR - 38.0 + target.y, "life": 0.32, "max_life": 0.32, "color": accent})
 			screen_shake = maxf(screen_shake, 5.2)
-			last_action = "¡ARCO DE RUPTURA!"
+			# Como técnica propia (no despertar de Volt) grita el nombre de la técnica del luchador.
+			last_action = "¡ARCO DE RUPTURA!" if f.volt_kit() else "¡%s!" % String(f.definition.get("technique", "Embestida")).to_upper()
 			last_action_time = 0.9
 		"marea-guard":
 			f.guard_time = 2.8
@@ -1202,7 +1246,7 @@ func _release_special(f: FighterState, target: FighterState, move: String, accen
 			for i in range(5):
 				burst(f.x + f.facing * (32.0 + i * 18.0), FLOOR - 43.0 + f.y, "#ffffff" if i % 2 == 1 else accent, 2)
 			screen_shake = maxf(screen_shake, 4.5)
-			last_action = "¡LANZA PRISMÁTICA!"
+			last_action = "¡%s!" % String(f.definition.get("technique", "Lanza prismática")).to_upper()
 			last_action_time = 0.8
 		"mirror-step":
 			var old_x := f.x
@@ -1214,7 +1258,7 @@ func _release_special(f: FighterState, target: FighterState, move: String, accen
 			add_effect({"type": "mirror-step", "x": old_x, "end_x": f.x, "y": FLOOR - 38.0 + f.y, "life": 0.34, "max_life": 0.34, "color": accent})
 			if distance < 220.0 and absf(target.y - f.y) < 72.0:
 				hit(target, f.facing, roundi(16.0 * f.damage_multiplier), {"knockback": 116.0, "hit_stop": 5.0, "attacker": f.index})
-			last_action = "¡DOBLE REFLEJO!"
+			last_action = "¡%s!" % String(f.definition.get("technique", "Doble reflejo")).to_upper()
 			last_action_time = 0.8
 		"fault-ring":
 			f.armor_time = 0.95
@@ -1225,7 +1269,7 @@ func _release_special(f: FighterState, target: FighterState, move: String, accen
 			if distance < 150.0 and absf(target.y - f.y) < 76.0:
 				hit(target, f.facing, roundi(24.0 * f.damage_multiplier), {"knockback": 208.0, "hit_stop": 9.0, "launch_y": -74.0, "attacker": f.index, "sound": "heavy_hit"})
 			screen_shake = maxf(screen_shake, 6.0)
-			last_action = "¡ANILLO DE FALLA!"
+			last_action = "¡%s!" % String(f.definition.get("technique", "Anillo de falla")).to_upper()
 			last_action_time = 0.9
 		"luma-heal":
 			var recovered := mini(28, MAX_HEALTH - f.health)
@@ -1241,7 +1285,6 @@ func _release_special(f: FighterState, target: FighterState, move: String, accen
 			last_action_time = 0.9
 		_:
 			push_error("Técnica desconocida: %s" % move)
-	queue_voice(f, "special", 1.0)
 
 
 ## Salto de umbral (Volt):
@@ -1319,7 +1362,7 @@ func hit(target: FighterState, direction: int, damage: int, options: Dictionary 
 	# Mientras se levanta del suelo no se le puede golpear (como StateKnockedDown).
 	if target.getup_time > 0.0:
 		return false
-	if target.id == "volt" and target.phase_time > 0.0:
+	if target.volt_kit() and target.phase_time > 0.0:
 		target.phase_time = 0.0
 		add_effect({"type": "volt-phase", "x": target.x, "y": FLOOR - 38.0 + target.y, "life": 0.28, "max_life": 0.28, "color": accent})
 		burst(target.x, FLOOR - 38.0 + target.y, "#efffff", 8)
@@ -1420,9 +1463,8 @@ func hit(target: FighterState, direction: int, damage: int, options: Dictionary 
 	queue_audio(String(options.get("sound", "hit")))
 	var heavy_hit: bool = options.get("heavy", false) or hit_stop_option >= 7.0
 	queue_anim(target, "golpe_recibido", {"fuerza": 1.5 if heavy_hit else 1.0})
-	if target.health > 0:
-		queue_voice(target, "hurt", 0.9 if heavy_hit else 0.35)
 	var launch_y := float(options.get("launch_y", 0.0))
+	var derribado_antes := target.knocked_down
 	var airborne_before := not target.grounded
 	if airborne_before:
 		target.juggle_count += 1
@@ -1443,6 +1485,8 @@ func hit(target: FighterState, direction: int, damage: int, options: Dictionary 
 		target.velocity_y = minf(target.velocity_y, -80.0)
 		target.knocked_down = true
 		target.knockdown_time = 0.0
+	if target.knocked_down and not derribado_antes:
+		queue_anim(target, "derribo")
 	burst(target.x, FLOOR - 36.0 + target.y, "#ff382f" if target.id == "brasa" else accent, 7)
 	_add_hit_spark(target, direction, options, heavy_hit or launch_y != 0.0)
 	var attacker_index := int(options.get("attacker", -1))
@@ -1479,13 +1523,79 @@ func hit(target: FighterState, direction: int, damage: int, options: Dictionary 
 	return true
 
 
+func can_ultimate(f: FighterState) -> bool:
+	return state == "playing" and f.definition.has("ultimate") and f.awakening_time > 0.0 \
+		and f.grounded and f.health > 0 and opponent_of(f).health > 0 \
+		and f.hurt_time <= 0.0 and not f.knocked_down and f.getup_time <= 0.0 \
+		and f.special_charge <= 0.0 and not ultimate_active
+
+
+func request_ultimate(f: FighterState) -> bool:
+	if not can_ultimate(f):
+		return false
+	ultimate_active = true
+	ultimate_owner = f.index
+	_ultimate_done.clear()
+	f.awakening_time = 0.0
+	for fighter in [player, enemy]:
+		fighter.walking = false
+		fighter.running = false
+		fighter.blocking = false
+		fighter.guard_time = 0.0
+		fighter.velocity_y = 0.0
+		fighter.knockback_velocity = 0.0
+		fighter.attack_pose = 0.0
+		fighter.attack_windup = 0.0
+		fighter.has_pending_attack = false
+		fighter.buffered_input = ""
+		fighter.buffer_time = 0.0
+		fighter.special_charge = 0.0
+		fighter.pending_special = ""
+		fighter.special_pose_time = 0.0
+		fighter.ai_plan.clear()
+	projectiles.clear()
+	hit_stop_frames = 0.0
+	queue_audio("awaken")
+	last_action = String(f.definition["ultimate_name"]).to_upper()
+	last_action_time = 22.0
+	ultimate_requested.emit(f.index)
+	return true
+
+
+func ultimate_hit(hit_id: String) -> bool:
+	if not ultimate_active or ultimate_owner < 0 or not ULTIMATE_HITS.has(hit_id) or _ultimate_done.has(hit_id):
+		return false
+	var attacker := fighter_by_index(ultimate_owner)
+	var target := opponent_of(attacker)
+	if target.health <= 0:
+		return false
+	# También se consume si hit() lo rechaza por esquiva, señuelo o levantada.
+	_ultimate_done[hit_id] = true
+	var strike: Dictionary = ULTIMATE_HITS[hit_id]
+	return hit(target, 1 if target.x >= attacker.x else -1, int(strike["damage"]), {
+		"attacker": ultimate_owner, "unblockable": true, "heavy": true,
+		"hit_stop": 0.0, "knockback": 0.0, "launch_y": float(strike["launch_y"]),
+	})
+
+
+func end_ultimate() -> void:
+	if ultimate_owner >= 0:
+		fighter_by_index(ultimate_owner).attack_cooldown = 0.0
+	ultimate_active = false
+	ultimate_owner = -1
+	_ultimate_done.clear()
+	screen_shake = 0.0
+	hit_stop_frames = 0.0
+	# El lanzamiento de hit() deja que gravedad y getup sigan su curso al reanudar.
+
+
 func awaken(f: FighterState, unlocked: bool) -> bool:
 	if not unlocked or f.meter < 100.0 or f.awakening_time > 0.0:
 		return false
 	f.meter = 0.0
 	f.awakening_time = 8.0
 	var accent := String(f.definition["accent"])
-	if f.id == "volt":
+	if f.volt_kit():
 		f.phase_time = 0.65
 		add_effect({"type": "volt-transform", "x": f.x, "y": FLOOR - 38.0 + f.y, "life": 0.9, "max_life": 0.9, "color": accent})
 	f.attack_cooldown = 0.0
@@ -1495,7 +1605,6 @@ func awaken(f: FighterState, unlocked: bool) -> bool:
 	last_action = "%s · DESPERTAR" % String(f.definition["awakening"]).to_upper()
 	last_action_time = 1.7
 	queue_audio("awaken")
-	queue_voice(f, "awaken", 1.0)
 	return true
 
 

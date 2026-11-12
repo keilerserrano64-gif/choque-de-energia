@@ -7,12 +7,12 @@ signal closed
 
 var _music: HSlider
 var _effects: HSlider
-var _voices: HSlider
 var _announcer: CheckButton
 var _skip_intro: CheckButton
 var _fullscreen: CheckButton
 var _hitboxes: CheckButton
 var _screen_fx: CheckButton
+var _calidad: CheckButton
 var _done: Button
 
 
@@ -42,19 +42,19 @@ func _ready() -> void:
 
 	_music = _add_slider(box, "MÚSICA")
 	_effects = _add_slider(box, "EFECTOS")
-	_voices = _add_slider(box, "VOCES")
 	_announcer = _add_check(box, "ANUNCIOS DE COMBATE")
 	_skip_intro = _add_check(box, "OMITIR PRESENTACIÓN DE RONDA")
 	_hitboxes = _add_check(box, "CAJAS DE GOLPE EN ENTRENAMIENTO")
 	_screen_fx = _add_check(box, "EFECTOS DE PANTALLA (ONDAS Y DESTELLOS)")
+	_calidad = _add_check(box, "LUCHADORES EN ALTA CALIDAD (HD)")
 	_fullscreen = _add_check(box, "PANTALLA COMPLETA")
 	_fullscreen.visible = not (OS.has_feature("web") or OS.has_feature("mobile"))
 
 	var controls := UiKit.label(
 		"J1  WASD mover y saltar · Mayús correr · E cubrirse (mantener)\n" +
-		"      J golpe · I golpe fuerte · K técnica · H despertar\n" +
+		"      I puño · J patada · K técnica · L golpe fuerte (↓+L patada fuerte) · H despertar\n" +
 		"J2  flechas · Num0 o Ñ correr · Num5 cubrirse\n" +
-		"      Num1 golpe · Num4 golpe fuerte · Num2 técnica · Num3 despertar\n" +
+		"      Num1 puño · Num6 patada · Num4 golpe fuerte · Num2 técnica · Num3 despertar\n" +
 		"Esc o P pausa", 13, UiKit.MUTED)
 	box.add_child(controls)
 
@@ -65,11 +65,13 @@ func _ready() -> void:
 
 	_music.value_changed.connect(_on_music_changed)
 	_effects.value_changed.connect(_on_effects_changed)
-	_voices.value_changed.connect(_on_voices_changed)
 	_announcer.toggled.connect(_on_announcer_toggled)
 	_skip_intro.toggled.connect(_on_skip_intro_toggled)
 	_hitboxes.toggled.connect(_on_hitboxes_toggled)
 	_screen_fx.toggled.connect(func(on: bool) -> void: SaveData.screen_effects = on)
+	_calidad.toggled.connect(func(on: bool) -> void:
+		SaveData.calidad_hd = on
+		FighterPainter.calidad_hd = on)
 	_fullscreen.toggled.connect(_on_fullscreen_toggled)
 
 
@@ -82,12 +84,6 @@ func _on_effects_changed(value: float) -> void:
 	SaveData.effects_volume = int(value)
 	Sfx.apply_volumes()
 	Sfx.play("cursor")
-
-
-func _on_voices_changed(value: float) -> void:
-	SaveData.voice_volume = int(value)
-	Sfx.apply_volumes()
-	Sfx.play_voice(0, "brasa", "punch")
 
 
 func _on_announcer_toggled(on: bool) -> void:
@@ -139,11 +135,11 @@ func _add_check(parent: Control, text: String) -> CheckButton:
 func open() -> void:
 	_music.set_value_no_signal(SaveData.music_volume)
 	_effects.set_value_no_signal(SaveData.effects_volume)
-	_voices.set_value_no_signal(SaveData.voice_volume)
 	_announcer.set_pressed_no_signal(SaveData.announcer)
 	_skip_intro.set_pressed_no_signal(SaveData.skip_intro)
 	_hitboxes.set_pressed_no_signal(SaveData.show_hitboxes)
 	_screen_fx.set_pressed_no_signal(SaveData.screen_effects)
+	_calidad.set_pressed_no_signal(SaveData.calidad_hd)
 	_fullscreen.set_pressed_no_signal(SaveData.fullscreen)
 	visible = true
 	modulate.a = 0.0

@@ -1,0 +1,523 @@
+{
+ "fuente": "res://fuentes/madara_edo_intro.png",
+ "nota": "Hoja de la intro de Madara Edo (2172x724, fondo negro). Los numeros impresos en la hoja estan mal (repetidos); el orden real es el de esta lista.",
+ "celdas": [
+  {
+   "fase": "aparicion",
+   "i": 0,
+   "rect": [
+    37,
+    30,
+    200,
+    98
+   ]
+  },
+  {
+   "fase": "aparicion",
+   "i": 1,
+   "rect": [
+    237,
+    30,
+    205,
+    98
+   ]
+  },
+  {
+   "fase": "aparicion",
+   "i": 2,
+   "rect": [
+    442,
+    30,
+    214,
+    98
+   ]
+  },
+  {
+   "fase": "aparicion",
+   "i": 3,
+   "rect": [
+    656,
+    30,
+    214,
+    98
+   ]
+  },
+  {
+   "fase": "aparicion",
+   "i": 4,
+   "rect": [
+    870,
+    30,
+    215,
+    98
+   ]
+  },
+  {
+   "fase": "aparicion",
+   "i": 5,
+   "rect": [
+    1085,
+    30,
+    221,
+    98
+   ]
+  },
+  {
+   "fase": "aparicion",
+   "i": 6,
+   "rect": [
+    1306,
+    30,
+    224,
+    98
+   ]
+  },
+  {
+   "fase": "aparicion",
+   "i": 7,
+   "rect": [
+    1530,
+    30,
+    225,
+    98
+   ]
+  },
+  {
+   "fase": "materializacion",
+   "i": 0,
+   "rect": [
+    30,
+    166,
+    216,
+    101
+   ]
+  },
+  {
+   "fase": "materializacion",
+   "i": 1,
+   "rect": [
+    246,
+    166,
+    214,
+    101
+   ]
+  },
+  {
+   "fase": "materializacion",
+   "i": 2,
+   "rect": [
+    460,
+    166,
+    212,
+    101
+   ]
+  },
+  {
+   "fase": "materializacion",
+   "i": 3,
+   "rect": [
+    672,
+    166,
+    209,
+    101
+   ]
+  },
+  {
+   "fase": "materializacion",
+   "i": 4,
+   "rect": [
+    881,
+    166,
+    211,
+    101
+   ]
+  },
+  {
+   "fase": "materializacion",
+   "i": 5,
+   "rect": [
+    1092,
+    166,
+    219,
+    101
+   ]
+  },
+  {
+   "fase": "materializacion",
+   "i": 6,
+   "rect": [
+    1311,
+    166,
+    223,
+    101
+   ]
+  },
+  {
+   "fase": "materializacion",
+   "i": 7,
+   "rect": [
+    1534,
+    166,
+    223,
+    101
+   ]
+  },
+  {
+   "fase": "sello",
+   "i": 0,
+   "rect": [
+    39,
+    310,
+    142,
+    89
+   ]
+  },
+  {
+   "fase": "sello",
+   "i": 1,
+   "rect": [
+    181,
+    310,
+    148,
+    89
+   ]
+  },
+  {
+   "fase": "sello",
+   "i": 2,
+   "rect": [
+    329,
+    310,
+    150,
+    89
+   ]
+  },
+  {
+   "fase": "sello",
+   "i": 3,
+   "rect": [
+    479,
+    310,
+    147,
+    89
+   ]
+  },
+  {
+   "fase": "sello",
+   "i": 4,
+   "rect": [
+    626,
+    310,
+    145,
+    89
+   ]
+  },
+  {
+   "fase": "sello",
+   "i": 5,
+   "rect": [
+    771,
+    310,
+    145,
+    89
+   ]
+  },
+  {
+   "fase": "sello",
+   "i": 6,
+   "rect": [
+    916,
+    310,
+    147,
+    89
+   ]
+  },
+  {
+   "fase": "sello",
+   "i": 7,
+   "rect": [
+    1063,
+    310,
+    146,
+    89
+   ]
+  },
+  {
+   "fase": "sello",
+   "i": 8,
+   "rect": [
+    1209,
+    310,
+    143,
+    89
+   ]
+  },
+  {
+   "fase": "chakra",
+   "i": 0,
+   "rect": [
+    29,
+    454,
+    148,
+    102
+   ]
+  },
+  {
+   "fase": "chakra",
+   "i": 1,
+   "rect": [
+    177,
+    454,
+    148,
+    102
+   ]
+  },
+  {
+   "fase": "chakra",
+   "i": 2,
+   "rect": [
+    325,
+    454,
+    147,
+    102
+   ]
+  },
+  {
+   "fase": "chakra",
+   "i": 3,
+   "rect": [
+    472,
+    454,
+    145,
+    102
+   ]
+  },
+  {
+   "fase": "chakra",
+   "i": 4,
+   "rect": [
+    617,
+    454,
+    146,
+    102
+   ]
+  },
+  {
+   "fase": "chakra",
+   "i": 5,
+   "rect": [
+    763,
+    454,
+    149,
+    102
+   ]
+  },
+  {
+   "fase": "chakra",
+   "i": 6,
+   "rect": [
+    912,
+    454,
+    154,
+    102
+   ]
+  },
+  {
+   "fase": "chakra",
+   "i": 7,
+   "rect": [
+    1066,
+    454,
+    161,
+    102
+   ]
+  },
+  {
+   "fase": "chakra",
+   "i": 8,
+   "rect": [
+    1227,
+    454,
+    170,
+    102
+   ]
+  },
+  {
+   "fase": "chakra",
+   "i": 9,
+   "rect": [
+    1397,
+    454,
+    177,
+    102
+   ]
+  },
+  {
+   "fase": "chakra",
+   "i": 10,
+   "rect": [
+    1574,
+    454,
+    183,
+    102
+   ]
+  },
+  {
+   "fase": "presentacion",
+   "i": 0,
+   "rect": [
+    26,
+    598,
+    170,
+    102
+   ]
+  },
+  {
+   "fase": "presentacion",
+   "i": 1,
+   "rect": [
+    196,
+    598,
+    160,
+    102
+   ]
+  },
+  {
+   "fase": "presentacion",
+   "i": 2,
+   "rect": [
+    356,
+    598,
+    150,
+    102
+   ]
+  },
+  {
+   "fase": "presentacion",
+   "i": 3,
+   "rect": [
+    506,
+    598,
+    150,
+    102
+   ]
+  },
+  {
+   "fase": "presentacion",
+   "i": 4,
+   "rect": [
+    656,
+    598,
+    151,
+    102
+   ]
+  },
+  {
+   "fase": "presentacion",
+   "i": 5,
+   "rect": [
+    807,
+    598,
+    147,
+    102
+   ]
+  },
+  {
+   "fase": "presentacion",
+   "i": 6,
+   "rect": [
+    954,
+    598,
+    144,
+    102
+   ]
+  },
+  {
+   "fase": "presentacion",
+   "i": 7,
+   "rect": [
+    1098,
+    598,
+    139,
+    102
+   ]
+  },
+  {
+   "fase": "presentacion",
+   "i": 8,
+   "rect": [
+    1237,
+    598,
+    132,
+    102
+   ]
+  },
+  {
+   "fase": "presentacion",
+   "i": 9,
+   "rect": [
+    1369,
+    598,
+    129,
+    102
+   ]
+  },
+  {
+   "fase": "presentacion",
+   "i": 10,
+   "rect": [
+    1498,
+    598,
+    132,
+    102
+   ]
+  },
+  {
+   "fase": "presentacion",
+   "i": 11,
+   "rect": [
+    1630,
+    598,
+    134,
+    102
+   ]
+  }
+ ],
+ "ojos": [
+  {
+   "nombre": "ojo_cerrado",
+   "rect": [
+    1378,
+    317,
+    121,
+    79
+   ]
+  },
+  {
+   "nombre": "ojo_despierta",
+   "rect": [
+    1509,
+    317,
+    120,
+    79
+   ]
+  },
+  {
+   "nombre": "ojo_sharingan",
+   "rect": [
+    1639,
+    317,
+    119,
+    79
+   ]
+  }
+ ],
+ "retrato": {
+  "rect": [
+   1782,
+   8,
+   382,
+   296
+  ]
+ }
+}

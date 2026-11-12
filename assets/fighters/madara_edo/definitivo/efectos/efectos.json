@@ -1,0 +1,255 @@
+{
+	"tajo_azul": {
+		"png": "res://assets/fighters/madara_edo/definitivo/efectos/tajo_azul.png",
+		"tam": [
+			69,
+			38
+		],
+		"ancla": [
+			34.5,
+			19.0
+		]
+	},
+	"tajo_morado_1": {
+		"png": "res://assets/fighters/madara_edo/definitivo/efectos/tajo_morado_1.png",
+		"tam": [
+			48,
+			31
+		],
+		"ancla": [
+			24.0,
+			15.5
+		]
+	},
+	"tajo_morado_2": {
+		"png": "res://assets/fighters/madara_edo/definitivo/efectos/tajo_morado_2.png",
+		"tam": [
+			58,
+			32
+		],
+		"ancla": [
+			29.0,
+			16.0
+		]
+	},
+	"anillo_1": {
+		"png": "res://assets/fighters/madara_edo/definitivo/efectos/anillo_1.png",
+		"tam": [
+			55,
+			17
+		],
+		"ancla": [
+			27.5,
+			8.5
+		]
+	},
+	"anillo_2": {
+		"png": "res://assets/fighters/madara_edo/definitivo/efectos/anillo_2.png",
+		"tam": [
+			37,
+			12
+		],
+		"ancla": [
+			18.5,
+			6.0
+		]
+	},
+	"aura_morada": {
+		"png": "res://assets/fighters/madara_edo/definitivo/efectos/aura_morada.png",
+		"tam": [
+			53,
+			33
+		],
+		"ancla": [
+			26.5,
+			33.0
+		]
+	},
+	"roca_1": {
+		"png": "res://assets/fighters/madara_edo/definitivo/efectos/roca_1.png",
+		"tam": [
+			14,
+			13
+		],
+		"ancla": [
+			7.0,
+			6.5
+		]
+	},
+	"roca_2": {
+		"png": "res://assets/fighters/madara_edo/definitivo/efectos/roca_2.png",
+		"tam": [
+			16,
+			16
+		],
+		"ancla": [
+			8.0,
+			8.0
+		]
+	},
+	"roca_3": {
+		"png": "res://assets/fighters/madara_edo/definitivo/efectos/roca_3.png",
+		"tam": [
+			15,
+			16
+		],
+		"ancla": [
+			7.5,
+			8.0
+		]
+	},
+	"roca_4": {
+		"png": "res://assets/fighters/madara_edo/definitivo/efectos/roca_4.png",
+		"tam": [
+			22,
+			20
+		],
+		"ancla": [
+			11.0,
+			10.0
+		]
+	},
+	"roca_5": {
+		"png": "res://assets/fighters/madara_edo/definitivo/efectos/roca_5.png",
+		"tam": [
+			22,
+			23
+		],
+		"ancla": [
+			11.0,
+			11.5
+		]
+	},
+	"roca_6": {
+		"png": "res://assets/fighters/madara_edo/definitivo/efectos/roca_6.png",
+		"tam": [
+			23,
+			26
+		],
+		"ancla": [
+			11.5,
+			13.0
+		]
+	},
+	"meteoro_1": {
+		"png": "res://assets/fighters/madara_edo/definitivo/efectos/meteoro_1.png",
+		"tam": [
+			34,
+			32
+		],
+		"ancla": [
+			17.0,
+			16.0
+		]
+	},
+	"meteoro_2": {
+		"png": "res://assets/fighters/madara_edo/definitivo/efectos/meteoro_2.png",
+		"tam": [
+			62,
+			41
+		],
+		"ancla": [
+			31.0,
+			20.5
+		]
+	},
+	"meteoro_3": {
+		"png": "res://assets/fighters/madara_edo/definitivo/efectos/meteoro_3.png",
+		"tam": [
+			77,
+			53
+		],
+		"ancla": [
+			38.5,
+			26.5
+		]
+	},
+	"explosion": {
+		"png": "res://assets/fighters/madara_edo/definitivo/efectos/explosion.png",
+		"tam": [
+			95,
+			46
+		],
+		"ancla": [
+			47.5,
+			46.0
+		]
+	},
+	"humo_1": {
+		"png": "res://assets/fighters/madara_edo/definitivo/efectos/humo_1.png",
+		"tam": [
+			85,
+			39
+		],
+		"ancla": [
+			42.5,
+			19.5
+		]
+	},
+	"humo_2": {
+		"png": "res://assets/fighters/madara_edo/definitivo/efectos/humo_2.png",
+		"tam": [
+			78,
+			40
+		],
+		"ancla": [
+			39.0,
+			20.0
+		]
+	},
+	"humo_3": {
+		"png": "res://assets/fighters/madara_edo/definitivo/efectos/humo_3.png",
+		"tam": [
+			70,
+			37
+		],
+		"ancla": [
+			35.0,
+			18.5
+		]
+	},
+	"escombros_1": {
+		"png": "res://assets/fighters/madara_edo/definitivo/efectos/escombros_1.png",
+		"tam": [
+			104,
+			26
+		],
+		"ancla": [
+			52.0,
+			26.0
+		]
+	},
+	"escombros_2": {
+		"png": "res://assets/fighters/madara_edo/definitivo/efectos/escombros_2.png",
+		"tam": [
+			71,
+			31
+		],
+		"ancla": [
+			35.5,
+			31.0
+		]
+	},
+	"escombros_3": {
+		"png": "res://assets/fighters/madara_edo/definitivo/efectos/escombros_3.png",
+		"tam": [
+			96,
+			35
+		],
+		"ancla": [
+			48.0,
+			35.0
+		]
+	},
+	"escombros_4": {
+		"png": "res://assets/fighters/madara_edo/definitivo/efectos/escombros_4.png",
+		"tam": [
+			81,
+			34
+		],
+		"ancla": [
+			40.5,
+			34.0
+		]
+	}
+}

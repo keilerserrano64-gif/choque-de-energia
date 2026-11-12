@@ -1,0 +1,75 @@
+{
+  "idle": [
+    349,
+    350,
+    351,
+    352,
+    353,
+    354
+  ],
+  "stance": 0,
+  "walk": [
+    95,
+    96,
+    97
+  ],
+  "run": 96,
+  "run_alt": 97,
+  "jump": 102,
+  "block": 182,
+  "jab_anticipate": 412,
+  "jab": 128,
+  "light": 129,
+  "cross": 183,
+  "hook": 47,
+  "heavy": 130,
+  "heavy_impact": 184,
+  "uppercut": 452,
+  "throw": 423,
+  "finisher": 457,
+  "finisher_impact": 458,
+  "kick_mid": 459,
+  "kick_spin": 99,
+  "sweep": 456,
+  "air_punch": 424,
+  "air_kick": 457,
+  "hurt": [
+    98
+  ],
+  "fall": 426,
+  "down": 427,
+  "charge": [
+    467,
+    468,
+    469,
+    470,
+    471,
+    472
+  ],
+  "special": [
+    473,
+    183
+  ],
+  "intro": [
+    21,
+    22,
+    23,
+    24,
+    25,
+    26
+  ],
+  "victory": [
+    380,
+    381,
+    382,
+    383
+  ],
+  "_frame_time": {
+    "idle": 0.14,
+    "walk": 0.1,
+    "charge": 0.07,
+    "special": 0.12,
+    "intro": 0.14,
+    "victory": 0.18
+  }
+}

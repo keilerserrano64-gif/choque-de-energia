@@ -37,7 +37,7 @@ func _ready() -> void:
 	for i in range(Catalog.STAGES.size() + 1):
 		_cards.append(_make_card(i))
 	difficulty_label.visible = Router.mode == "cpu"
-	hint.text = "IZQ/DER  ESCENARIO     %sJ / ENTER  LUCHAR     L / ESC  VOLVER" % ("ARRIBA/ABAJO  DIFICULTAD     " if difficulty_label.visible else "")
+	hint.text = "IZQ/DER  ESCENARIO     %sJ / ENTER  LUCHAR     K / ESC  VOLVER" % ("ARRIBA/ABAJO  DIFICULTAD     " if difficulty_label.visible else "")
 	_layout(true)
 	_refresh()
 
@@ -134,8 +134,9 @@ func _process(delta: float) -> void:
 
 
 func _pressed(action: String) -> bool:
+	var selection_action := String({"attack": "menu_accept", "special": "menu_cancel"}.get(action, action))
 	var ui := {"left": "ui_left", "right": "ui_right", "jump": "ui_up", "down": "ui_down", "attack": "ui_accept", "special": "ui_cancel"}
-	return Input.is_action_just_pressed("p1_" + action) or Input.is_action_just_pressed("p2_" + action) \
+	return Input.is_action_just_pressed("p1_" + selection_action) or Input.is_action_just_pressed("p2_" + selection_action) \
 		or (ui.has(action) and Input.is_action_just_pressed(ui[action]))
 
 

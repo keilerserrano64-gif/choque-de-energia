@@ -1,0 +1,20 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/fight/ultimates/madara_ultimate.gd" id="1_ult"]
+[ext_resource type="Script" path="res://scripts/fight/ultimates/ultimate_overlay.gd" id="2_overlay"]
+
+[node name="MadaraEdoUltimate" type="Node"]
+script = ExtResource("1_ult")
+
+[node name="Cine" type="CanvasLayer" parent="."]
+layer = 30
+
+[node name="Overlay" type="Control" parent="Cine"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("2_overlay")

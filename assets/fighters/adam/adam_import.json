@@ -1,0 +1,88 @@
+{
+  "sheet": "fuentes/adam.png",
+  "options": {
+    "mode": "plain",
+    "gap": "1",
+    "crop": "0,0,1586,2623",
+    "connect": "4",
+    "split": true
+  },
+  "map": {
+    "idle": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "stance": 52,
+    "walk": [
+      18,
+      19,
+      20,
+      21,
+      22,
+      23
+    ],
+    "run": 15,
+    "run_alt": 15,
+    "jump": 33,
+    "block": 38,
+    "jab_anticipate": 52,
+    "jab": 54,
+    "light": 55,
+    "cross": 57,
+    "hook": 58,
+    "heavy": 86,
+    "heavy_impact": 87,
+    "uppercut": 94,
+    "throw": 83,
+    "finisher": 66,
+    "finisher_impact": 67,
+    "kick_low": 68,
+    "kick_high": 78,
+    "kick_spin": 71,
+    "sweep": 91,
+    "air_punch": 88,
+    "air_kick": 72,
+    "hurt": [
+      41,
+      42
+    ],
+    "fall": 45,
+    "down": 51,
+    "charge": [
+      109,
+      110
+    ],
+    "special": [
+      105,
+      106,
+      107,
+      108
+    ],
+    "intro": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "victory": [
+      109,
+      110,
+      111,
+      112
+    ],
+    "_frame_time": {
+      "idle": 0.16,
+      "walk": 0.09,
+      "hurt": 0.12,
+      "charge": 0.1,
+      "special": 0.05,
+      "intro": 0.18,
+      "victory": 0.25
+    }
+  },
+  "base": "naruto",
+  "flip": false,
+  "name": "Adam"
+}

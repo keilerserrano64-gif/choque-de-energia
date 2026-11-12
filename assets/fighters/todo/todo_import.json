@@ -1,0 +1,89 @@
+{
+  "sheet": "fuentes/todo.png",
+  "options": {
+    "mode": "plain",
+    "gap": "1",
+    "lines": "20",
+    "connect": "4",
+    "split": true
+  },
+  "map": {
+    "idle": [
+      0,
+      1,
+      2,
+      3,
+      5
+    ],
+    "stance": 157,
+    "walk": [
+      55,
+      56,
+      57,
+      58,
+      60,
+      61,
+      62
+    ],
+    "run": 64,
+    "run_alt": 67,
+    "jump": 79,
+    "block": 51,
+    "jab_anticipate": 158,
+    "jab": 160,
+    "jab_recover": 161,
+    "light": 165,
+    "cross": 171,
+    "hook": 189,
+    "heavy": 340,
+    "heavy_impact": 341,
+    "uppercut": 234,
+    "throw": 197,
+    "finisher": 246,
+    "finisher_impact": 247,
+    "kick_low": 245,
+    "kick_mid": 248,
+    "kick_high": 337,
+    "kick_spin": 254,
+    "sweep": 255,
+    "air_punch": 202,
+    "air_kick": 262,
+    "hurt": [
+      75,
+      78
+    ],
+    "fall": 84,
+    "down": 156,
+    "charge": [
+      291,
+      292,
+      299
+    ],
+    "special": [
+      300,
+      301
+    ],
+    "intro": [
+      6,
+      7,
+      8,
+      9
+    ],
+    "victory": [
+      354,
+      355
+    ],
+    "_frame_time": {
+      "idle": 0.16,
+      "walk": 0.09,
+      "hurt": 0.12,
+      "charge": 0.1,
+      "special": 0.1,
+      "intro": 0.18,
+      "victory": 0.3
+    }
+  },
+  "base": "naruto",
+  "flip": false,
+  "name": "Todo"
+}

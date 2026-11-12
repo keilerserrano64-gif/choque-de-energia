@@ -6,7 +6,7 @@
 [ext_resource type="Script" uid="uid://b1rkgnfhk8pe0" path="res://scripts/ui/options_panel.gd" id="4_options"]
 [ext_resource type="Script" uid="uid://c05v4tda2muuf" path="res://scripts/ui/store_panel.gd" id="5_store"]
 
-[node name="MainMenu" type="Control" unique_id=346898064]
+[node name="MainMenu" type="Control" unique_id=248755490]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -15,7 +15,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_menu")
 
-[node name="Backdrop" type="Control" parent="." unique_id=959568259]
+[node name="Backdrop" type="Control" parent="." unique_id=1111276477]
 unique_name_in_owner = true
 modulate = Color(0.62, 0.64, 0.76, 1)
 layout_mode = 1
@@ -27,7 +27,7 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("2_stage")
 
-[node name="Shade" type="ColorRect" parent="." unique_id=486148501]
+[node name="Shade" type="ColorRect" parent="." unique_id=1133637702]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -35,99 +35,111 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.03, 0.035, 0.06, 0.55)
+color = Color(0.03, 0.035, 0.06, 0.4)
 
-[node name="Hero" type="Control" parent="." unique_id=539785906]
+[node name="Stripe" type="Control" parent="." unique_id=1393109835]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Hero" type="Control" parent="." unique_id=851586639]
 unique_name_in_owner = true
 anchors_preset = 0
-offset_left = 1027.0
-offset_top = 332.0
-offset_right = 1407.0
-offset_bottom = 762.0
+offset_left = 520.0
+offset_top = 70.0
+offset_right = 880.0
+offset_bottom = 450.0
+mouse_filter = 2
 script = ExtResource("3_portrait")
 
-[node name="HeroName" type="Label" parent="." unique_id=1434922568]
+[node name="HeroName" type="Label" parent="." unique_id=540730074]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 560.0
+offset_left = 500.0
 offset_top = 440.0
-offset_right = 940.0
-offset_bottom = 490.0
-text = "BRASA"
+offset_right = 900.0
+offset_bottom = 486.0
+text = "KAKASHI"
 horizontal_alignment = 1
 
-[node name="HeroRole" type="Label" parent="." unique_id=437190654]
+[node name="HeroRole" type="Label" parent="." unique_id=481181976]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 560.0
-offset_top = 486.0
-offset_right = 940.0
-offset_bottom = 508.0
-text = "VANGUARDIA SOLAR"
+offset_left = 500.0
+offset_top = 482.0
+offset_right = 900.0
+offset_bottom = 502.0
+text = "CORREDOR ELÉCTRICO"
 horizontal_alignment = 1
 
-[node name="TitleBox" type="VBoxContainer" parent="." unique_id=1300091269]
+[node name="TitleBox" type="VBoxContainer" parent="." unique_id=2021275521]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 245.0
-offset_top = 160.0
-offset_right = 765.0
-offset_bottom = 360.0
-theme_override_constants/separation = -6
+offset_left = 40.0
+offset_top = 18.0
+offset_right = 440.0
+offset_bottom = 118.0
+theme_override_constants/separation = -8
 
-[node name="Tagline" type="Label" parent="TitleBox" unique_id=1406641514]
+[node name="Tagline" type="Label" parent="TitleBox" unique_id=258335971]
 unique_name_in_owner = true
 layout_mode = 2
-text = "OCHO ESTILOS · UNA ARENA"
+text = "UNA ARENA · TODOS LOS ESTILOS"
 
-[node name="Title" type="Label" parent="TitleBox" unique_id=1345516315]
+[node name="Title" type="Label" parent="TitleBox" unique_id=1981343357]
 unique_name_in_owner = true
 layout_mode = 2
 text = "CHOQUE"
 
-[node name="Subtitle" type="Label" parent="TitleBox" unique_id=1988004199]
+[node name="Subtitle" type="Label" parent="TitleBox" unique_id=207572686]
 unique_name_in_owner = true
 layout_mode = 2
 text = "DE ENERGÍA"
 
-[node name="MenuList" type="VBoxContainer" parent="." unique_id=1633453611]
+[node name="MenuList" type="VBoxContainer" parent="." unique_id=1194235520]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 1228.0
-offset_top = 784.0
-offset_right = 1588.0
-offset_bottom = 1076.0
-theme_override_constants/separation = 4
+offset_left = 40.0
+offset_top = 132.0
+offset_right = 400.0
+offset_bottom = 444.0
+theme_override_constants/separation = 6
 
-[node name="Description" type="Label" parent="." unique_id=201345078]
+[node name="Description" type="Label" parent="." unique_id=717232634]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 64.0
-offset_top = 500.0
-offset_right = 584.0
-offset_bottom = 522.0
+offset_left = 40.0
+offset_top = 456.0
+offset_right = 470.0
+offset_bottom = 500.0
+autowrap_mode = 3
 
-[node name="Coins" type="Label" parent="." unique_id=1361069378]
+[node name="Coins" type="Label" parent="." unique_id=2007023298]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 700.0
+offset_left = 680.0
 offset_top = 14.0
 offset_right = 944.0
 offset_bottom = 42.0
 text = "0 MONEDAS"
 horizontal_alignment = 2
 
-[node name="Footer" type="Label" parent="." unique_id=931707237]
+[node name="Footer" type="Label" parent="." unique_id=2131725551]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 700.0
-offset_top = 516.0
+offset_left = 520.0
+offset_top = 514.0
 offset_right = 944.0
-offset_bottom = 534.0
-text = "W/S MOVER · J/ENTER ELEGIR · K VOLVER"
+offset_bottom = 532.0
+text = "W/S MOVER · J/ENTER ELEGIR · K/ESC VOLVER"
 horizontal_alignment = 2
 
-[node name="OptionsPanel" type="Control" parent="." unique_id=1741645527]
+[node name="OptionsPanel" type="Control" parent="." unique_id=979882169]
 unique_name_in_owner = true
 visible = false
 layout_mode = 1
@@ -138,7 +150,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("4_options")
 
-[node name="StorePanel" type="Control" parent="." unique_id=682362510]
+[node name="StorePanel" type="Control" parent="." unique_id=593257222]
 unique_name_in_owner = true
 visible = false
 layout_mode = 1
@@ -148,3 +160,5 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("5_store")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=529462437]

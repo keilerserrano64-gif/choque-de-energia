@@ -6,12 +6,12 @@ extends RefCounted
 ## reescritas para CombatSim. No usa nada de su arte ni de sus personajes.
 ##
 ## Cómo funciona el árbol:
-##   J abre una cadena: J → J → J… sigue el combo normal de cada luchador
+##   I abre una cadena de puños; J abre una cadena de patadas.
 ##   (combo_length golpes, el último es su remate).
-##   I, en mitad de una cadena y antes de su remate, la cierra con una rama:
-##     J → I        LANZADOR: lanza al rival hacia arriba para seguir golpeándolo en el aire.
-##     J → J (→…) → I  REMATE CRUZADO: remate más fuerte que el normal.
-##   I sin cadena abierta es el golpe fuerte de siempre.
+##   L, en mitad de una cadena y antes de su remate, la cierra con una rama:
+##     I → L        LANZADOR: lanza al rival para seguir golpeándolo en el aire.
+##     I → I (→…) → L  REMATE CRUZADO: remate más fuerte que el normal.
+##   L sin cadena abierta es el puño fuerte; ↓+L es una patada fuerte independiente.
 ##
 ## Cada luchador puede tener sus propias ramas con "combo_branches" en catalog.gd
 ## (misma forma que BRANCHES). Se usa la rama con el "after" más alto que no
@@ -28,12 +28,12 @@ const BRANCHES := [
 	},
 ]
 
-## --- Cadenas de puños (J) y de patadas (K) ---------------------------------
-## Pulsar J varias veces lanza SOLO puños; pulsar K varias veces, SOLO patadas.
+## --- Cadenas de puños (I) y de patadas (J) ---------------------------------
+## Pulsar I varias veces lanza SOLO puños; pulsar J varias veces, SOLO patadas.
 ## Cada luchador tiene la longitud de sus cadenas en catalog.gd ("punch_combo",
 ## "kick_combo"). El último golpe de cada cadena es su remate.
 ## Cambiar de botón a mitad de cadena no la rompe: el combo sigue contando y el
-## siguiente golpe sale del otro tipo (J, J, K = jab, directo, patada…).
+## siguiente golpe sale del otro tipo (I, I, J = jab, directo, patada…).
 const PUNCH_SEQUENCES := {
 	2: ["jab", "uppercut"],
 	3: ["jab", "cross", "uppercut"],
@@ -66,8 +66,8 @@ const STRIKES := {
 }
 
 ## Golpes de comando (no forman parte de las cadenas):
-##   ↓ + J  uppercut antiaéreo · ↓ + K barrida (derriba) · J o K en el aire: puño / patada aérea
-##   → + I cerca del rival: agarre (no se puede bloquear)
+##   ↓ + I uppercut antiaéreo · ↓ + J barrida · I / J en el aire: puño / patada aérea
+##   → + L cerca del rival: agarre · ↓ + L patada fuerte (tiene prioridad sobre el agarre)
 const COMMAND_STRIKES := {
 	"sweep": {"kind": "kick", "damage": 1.0, "knockback": 46.0, "hit_stop": 6.0, "hitstun": 0.5, "launch": -95.0,
 		"lunge": 60.0, "text": "¡BARRIDA!"},
@@ -106,7 +106,7 @@ const GUARD_STUN_HEAVY := 0.32
 const GUARD_PUSHBACK := 60.0
 
 
-## Rama de combo para cerrar con I una cadena que lleva `chain_step` golpes.
+## Rama de combo para cerrar con L una cadena que lleva `chain_step` golpes.
 ## Devuelve {} si no hay ninguna.
 static func branch_for(definition: Dictionary, chain_step: int) -> Dictionary:
 	var branches: Array = definition.get("combo_branches", BRANCHES)

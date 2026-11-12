@@ -1,18 +1,17 @@
 extends Control
 ## Selección de luchador con forma de libro abierto y cámara animada.
 ## - Izquierda: retrato grande del luchador de J1 con su técnica y despertar.
-## - Centro: dos páginas (ALBA azul y OCASO roja) con 4 + 4 luchadores y
+## - Centro: dos páginas (ALBA azul y OCASO roja) con los luchadores del catálogo y
 ##   una casilla ALEATORIO en cada una.
 ## - Derecha: J2, la CPU o el rival de Arcade, con cartas apiladas detrás.
 ## - Arriba: cuenta atrás (30 s contra la CPU, sin límite en VS y entrenamiento).
 ## La "cámara" es el nodo Rig: entra con zoom y apertura del libro, se inclina
 ## hacia el cursor y, al confirmar, se acerca al centro antes del "VS".
 
-const LAYOUT := [
-	[0, 1, 4, 5],
-	[2, 3, 6, 7],
-	[SelectCell.RANDOM, 8, SelectCell.EMBLEM, SelectCell.RANDOM],  # 8 = Kakashi
-]
+## Casillas de los luchadores (por orden del catálogo); las que sobran son emblemas.
+const FIGHTER_SLOTS := [Vector2i(0, 0), Vector2i(1, 0), Vector2i(0, 1), Vector2i(1, 1),
+	Vector2i(2, 0), Vector2i(3, 0), Vector2i(2, 1), Vector2i(3, 1), Vector2i(1, 2)]
+static var LAYOUT: Array = _build_layout()
 const COLS := 4
 const ROWS := 3
 const COUNTDOWN := 30.0
@@ -309,10 +308,11 @@ func _process(delta: float) -> void:
 
 
 func _just(player: int, action: String) -> bool:
+	var selection_action := String({"attack": "menu_accept", "special": "menu_cancel"}.get(action, action))
 	if mode == "versus":
-		return Input.is_action_just_pressed("p%d_%s" % [player + 1, action])
+		return Input.is_action_just_pressed("p%d_%s" % [player + 1, selection_action])
 	var ui := {"left": "ui_left", "right": "ui_right", "jump": "ui_up", "down": "ui_down", "attack": "ui_accept", "special": "ui_cancel"}
-	return Input.is_action_just_pressed("p1_" + action) or Input.is_action_just_pressed("p2_" + action) \
+	return Input.is_action_just_pressed("p1_" + selection_action) or Input.is_action_just_pressed("p2_" + selection_action) \
 		or (ui.has(action) and Input.is_action_just_pressed(ui[action]))
 
 
@@ -356,6 +356,18 @@ func _cell_at(pos: Vector2i) -> SelectCell:
 	return _cells[pos.y][pos.x]
 
 
+static func _build_layout() -> Array:
+	var grid := [
+		[SelectCell.EMBLEM, SelectCell.EMBLEM, SelectCell.EMBLEM, SelectCell.EMBLEM],
+		[SelectCell.EMBLEM, SelectCell.EMBLEM, SelectCell.EMBLEM, SelectCell.EMBLEM],
+		[SelectCell.RANDOM, SelectCell.EMBLEM, SelectCell.EMBLEM, SelectCell.RANDOM],
+	]
+	for i in mini(Catalog.FIGHTERS.size(), FIGHTER_SLOTS.size()):
+		var slot: Vector2i = FIGHTER_SLOTS[i]
+		grid[slot.y][slot.x] = i
+	return grid
+
+
 func _position_of(fighter_index: int) -> Vector2i:
 	for row in range(ROWS):
 		for col in range(COLS):
@@ -372,6 +384,8 @@ func _resolve(pos: Vector2i, exclude: String = "") -> String:
 	for fighter in Catalog.FIGHTERS:
 		if fighter["id"] != exclude:
 			options.append(String(fighter["id"]))
+	if options.is_empty():  # un solo luchador: combate espejo
+		return String(Catalog.FIGHTERS[0]["id"])
 	return options[randi() % options.size()]
 
 
@@ -520,13 +534,13 @@ func _refresh_all() -> void:
 		_hint.text = "J1  WASD · J elegir · K volver      J2  flechas · Num1 elegir · Num2 volver"
 	elif phase == 0:
 		_instruction.text = "Elige a tu luchador"
-		_hint.text = "MOVER  WASD / flechas     J / ENTER  CONFIRMAR     L / ESC  VOLVER"
+		_hint.text = "MOVER  WASD / flechas     J / ENTER  CONFIRMAR     K / ESC  VOLVER"
 	elif mode == "arcade":
 		_instruction.text = "Buscando rival…"
 		_hint.text = "ARCADE · 7 RIVALES"
 	else:
 		_instruction.text = "Elige a tu rival" if mode == "cpu" else "Elige al muñeco de práctica"
-		_hint.text = "MOVER  WASD / flechas     J / ENTER  CONFIRMAR     L / ESC  VOLVER"
+		_hint.text = "MOVER  WASD / flechas     J / ENTER  CONFIRMAR     K / ESC  VOLVER"
 	if countdown == INF:
 		_timer_label.text = "--"
 
@@ -557,7 +571,7 @@ func _update_showcase(side: int, visible_side: bool = true) -> void:
 		_show_moves[side].text = "TÉCNICA  ?\nDESPERTAR  ?"
 		_show_status[side].text = ""
 		return
-	var fighter_id := chosen[side] if locked[side] else String(Catalog.FIGHTERS[index]["id"])
+	var fighter_id := chosen[side] if locked[side] else String(Catalog.FIGHTERS[clampi(index, 0, Catalog.FIGHTERS.size() - 1)]["id"])
 	var fighter := Catalog.fighter(fighter_id)
 	if portrait.fighter_id != fighter_id:
 		portrait.fighter_id = fighter_id

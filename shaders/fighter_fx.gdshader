@@ -11,6 +11,25 @@ uniform float surge : hint_range(0.0, 1.0) = 0.0;
 uniform vec4 glow_color : source_color = vec4(0.5, 0.9, 1.0, 1.0);
 // Grosor del contorno en píxeles de la imagen.
 uniform float outline_px = 1.5;
+// Pixel art nítido: con la capa en filtro lineal, cada píxel de la imagen se ve del mismo
+// tamaño a cualquier escala (no entera), giro o zoom, con el borde apenas suavizado. Sin
+// esto, el filtro «vecino más cercano» a escala 1,84 o 2,46 duplica unas filas y otras no,
+// y al girar o estirar al luchador los bordes hacen escalones que tiemblan.
+uniform bool pixel_nitido = true;
+
+varying vec4 color_vertice;
+
+void vertex() {
+	color_vertice = COLOR;
+}
+
+vec2 uv_nitido(vec2 uv, vec2 tam) {
+	vec2 px = uv * tam;
+	vec2 centro = floor(px + 0.5);
+	vec2 ancho = max(fwidth(px), vec2(1e-4));
+	px = centro + clamp((px - centro) / ancho, -0.5, 0.5);
+	return px / tam;
+}
 
 float hash(vec2 p) {
 	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
@@ -28,7 +47,22 @@ float value_noise(vec2 p) {
 }
 
 void fragment() {
-	vec4 base = texture(TEXTURE, UV) * COLOR;
+	// En Godot 4, COLOR ya llega multiplicado por la textura: volver a multiplicar por
+	// texture(TEXTURE, UV) elevaba cada color al cuadrado y oscurecía a los luchadores.
+	vec4 base = COLOR;
+	// textureGrad con las derivadas de UV originales: el nivel de mipmap correcto aunque
+	// uv_nitido «escalone» la coordenada (hojas HD dibujadas más pequeñas que su tamaño).
+	vec4 muestra = pixel_nitido
+		? textureGrad(TEXTURE, uv_nitido(UV, 1.0 / TEXTURE_PIXEL_SIZE), dFdx(UV), dFdy(UV))
+		: texture(TEXTURE, UV);
+	if (pixel_nitido) {
+		base = color_vertice * muestra;
+	}
+	// Silueta de color (estelas y rastros de golpe): FighterPainter.silueta() la marca con
+	// un color negativo. Se pinta la forma del sprite de ese color, sin su textura.
+	if (color_vertice.r < -0.5) {
+		base = vec4(-color_vertice.rgb - 1.0, muestra.a * color_vertice.a);
+	}
 	vec4 result = base;
 
 	if (glow > 0.0) {

@@ -4,8 +4,8 @@ extends Node
 ## crea allí una acción con el mismo nombre: este script no la sobrescribe.
 ##
 ## J1: W saltar (o Espacio) · A/D mover · S abajo · Mayús correr
-##     J puño (combo de puños) · K patada (combo de patadas) · I golpe fuerte
-##     E cubrirse (mantener) · L técnica · H despertar
+##     I puño (combo de puños) · J patada (combo de patadas) · L golpe fuerte
+##     E cubrirse (mantener) · K técnica · H despertar
 ## J2: ←/→ mover · ↑ saltar · ↓ abajo · Numpad 0 o Ñ correr
 ##     Numpad 1 o "," puño · Numpad 6 o "M" patada · Numpad 4 o "´" golpe fuerte
 ##     Numpad 5 o "Ç" cubrirse · Numpad 2 o "." técnica · Numpad 3 o "-" despertar
@@ -17,8 +17,8 @@ extends Node
 
 const P1_KEYS := {
 	"left": [KEY_A], "right": [KEY_D], "jump": [KEY_W, KEY_SPACE], "down": [KEY_S],
-	"run": [KEY_SHIFT], "attack": [KEY_J], "kick": [KEY_K], "heavy": [KEY_I], "block": [KEY_E],
-	"special": [KEY_L], "awaken": [KEY_H],
+	"run": [KEY_SHIFT], "attack": [KEY_I], "kick": [KEY_J], "heavy": [KEY_L], "block": [KEY_E],
+	"special": [KEY_K], "awaken": [KEY_H],
 }
 const P2_KEYS := {
 	"left": [KEY_LEFT], "right": [KEY_RIGHT], "jump": [KEY_UP], "down": [KEY_DOWN],
@@ -40,7 +40,7 @@ const PAD_AXES := {
 }
 const EXTRA_UI := {
 	"ui_up": [KEY_W], "ui_down": [KEY_S], "ui_left": [KEY_A], "ui_right": [KEY_D],
-	"ui_accept": [KEY_J], "ui_cancel": [KEY_L, KEY_BACKSPACE],
+	"ui_accept": [KEY_ENTER, KEY_J], "ui_cancel": [KEY_ESCAPE, KEY_K, KEY_BACKSPACE],
 }
 
 
@@ -48,6 +48,9 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_register_player(0, P1_KEYS)
 	_register_player(1, P2_KEYS)
+	# La selección conserva J/Enter y K/Esc, sin depender de los golpes del combate.
+	_register_menu(0, [KEY_J, KEY_ENTER], [KEY_K, KEY_ESCAPE, KEY_BACKSPACE])
+	_register_menu(1, P2_KEYS["attack"], P2_KEYS["special"])
 	_register_keys("pause", [KEY_ESCAPE, KEY_P])
 	_add_button("pause", JOY_BUTTON_START, -1)
 	for action in EXTRA_UI:
@@ -61,6 +64,17 @@ func _ready() -> void:
 				var key_event: InputEventKey = event
 				if key_event.keycode == KEY_SPACE or key_event.physical_keycode == KEY_SPACE:
 					InputMap.action_erase_event("ui_accept", event)
+	_add_button("ui_accept", JOY_BUTTON_A, -1)
+	_add_button("ui_cancel", JOY_BUTTON_B, -1)
+
+
+func _register_menu(index: int, accept_keys: Array, cancel_keys: Array) -> void:
+	var prefix := "p%d_menu_" % [index + 1]
+	_register_keys(prefix + "accept", accept_keys)
+	_register_keys(prefix + "cancel", cancel_keys)
+	for button in [JOY_BUTTON_A, JOY_BUTTON_X]:
+		_add_button(prefix + "accept", button, index)
+	_add_button(prefix + "cancel", JOY_BUTTON_B, index)
 
 
 func _register_player(index: int, keys: Dictionary) -> void:
